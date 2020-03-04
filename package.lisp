@@ -37,4 +37,21 @@
                           #:accumulate)
 
   (:import-from #:flexi-streams
-                #:with-output-to-sequence))
+                #:with-output-to-sequence)
+
+  (:export
+   ;; Types
+
+   #:wasm-module
+   #:wasm-function-type
+   #:wasm-import
+   #:wasm-export
+   #:wasm-limit
+   #:wasm-global
+   #:wasm-table
+   #:wasm-function
+   #:wasm-data
+
+   ;; Functions
+
+   #:serialize-module))
