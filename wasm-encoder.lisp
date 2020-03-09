@@ -185,6 +185,15 @@
   bytes
   (memory 0))
 
+
+;;;; Value Types
+
+(deftype u32 ()
+  `(integer 0 ,(1- (expt 2 32))))
+
+(deftype i32 ()
+  `(integer ,(- (expt 2 31)) ,(1- (expt 2 31))))
+
 
 ;;; Module Serialization
 
@@ -298,7 +307,7 @@
          (with-output-to-sequence (stream)
            (funcall fn stream))))
 
-    (serialize-value (length bytes) stream)
+    (serialize-u32 (length bytes) stream)
     (write-sequence bytes stream)))
 
 
@@ -338,17 +347,17 @@
   (with-struct-slots wasm-import- (module name type desc)
       import
 
-    (serialize-value module stream)
-    (serialize-value name stream)
+    (serialize-string module stream)
+    (serialize-string name stream)
 
     (ecase type
       (func
        (write-byte #x00 stream)
-       (serialize-value desc stream))
+       (serialize-u32 desc stream))
 
       (table
        (write-byte #x01 stream)
-       (serialize-table desc stream))
+       (serialize-u32 desc stream))
 
       (memory
        (write-byte #x02 stream)
@@ -427,7 +436,7 @@
    object."
 
   (with-struct-slots wasm-export- (name type index) export
-    (serialize-value name stream)
+    (serialize-string name stream)
 
     (write-byte
      (ecase type
@@ -437,7 +446,7 @@
        (global #x03))
      stream)
 
-    (serialize-value index stream)))
+    (serialize-u32 index stream)))
 
 
 ;;;; Start Section
@@ -450,7 +459,7 @@
      +start-section-id+
 
      (lambda (stream)
-       (serialize-value index stream))
+       (serialize-u32 index stream))
 
      stream)))
 
@@ -475,9 +484,9 @@
    by a WASM-TABLE object."
 
   (with-struct-slots wasm-table- (index offset functions) table
-    (serialize-value index stream)
+    (serialize-u32 index stream)
     (serialize-expression offset stream)
-    (serialize-vector #'serialize-value functions stream)))
+    (serialize-vector #'serialize-u32 functions stream)))
 
 
 ;;;; Function Sections
@@ -491,7 +500,7 @@
    +function-section-id+
 
    (lambda (stream)
-     (serialize-vector #'serialize-value types stream))
+     (serialize-vector #'serialize-u32 types stream))
 
    stream))
 
@@ -515,7 +524,7 @@
 
   (labels ((serialize-local (local stream)
              (destructuring-bind (type . count) local
-               (serialize-value count stream)
+               (serialize-u32 count stream)
                (serialize-type type stream)))
 
            (group-locals (locals)
@@ -562,22 +571,49 @@
   (with-struct-slots wasm-data- (offset bytes memory)
       data
 
-    (serialize-value memory stream)
+    (serialize-u32 memory stream)
     (serialize-expression offset stream)
     (serialize-vector (rcurry #'write-byte stream) bytes stream)))
 
 
-;;; Values
+;;; Numbers
 
-(defgeneric serialize-value (value stream)
-  (:documentation
-   "Serialize a literal value such as a numeric value or string."))
+;;;; Floating Point
+
+(defun serialize-float (value stream)
+  "Serialize a single FLOAT to IEEE 32-bit floating point
+   representation."
+
+  (check-type value single-float)
+
+  (serialize-32-bit (encode-float32 value) stream))
+
+(defun serialize-double-float (value stream)
+  "Serialize a DOUBLE-FLOAT to IEEE 64-bit floating point
+   representation."
+
+  (check-type value float)
+
+  (serialize-64-bit (encode-float64 value) stream))
 
 
-;;;; Numbers
+;;;; Integers
 
-(defmethod serialize-value ((value integer) stream)
+(defun serialize-u32 (value stream)
+  (check-type value u32)
+
+  (serialize-integer value stream))
+
+(defun serialize-i32 (value stream)
+  (check-type value i32)
+
+  (serialize-integer value stream))
+
+
+(defun serialize-integer (value stream)
   "Serialize an integer to LEB128 format"
+
+  (check-type value integer)
 
   (flet ((more? (n)
            (and (not (zerop n))
@@ -593,19 +629,6 @@
 
         (when (more? n)
           (encode n))))))
-
-(defmethod serialize-value ((value double-float) stream)
-  "Serialize a DOUBLE-FLOAT to IEEE 64-bit floating point
-   representation."
-
-  (serialize-64-bit (encode-float64 value) stream))
-
-(defmethod serialize-value ((value float) stream)
-  "Serialize a single FLOAT to IEEE 32-bit floating point
-   representation."
-
-  (serialize-32-bit (encode-float32 value) stream))
-
 
 (defun serialize-32-bit (value stream)
   "Serialize an integer value to 4 bytes in little endian order."
@@ -635,11 +658,11 @@
 
 ;;;; Strings
 
-(defmethod serialize-value ((value string) stream)
+(defun serialize-string (value stream)
   "Serialize a string to a UTF-8 encoded string without BOM."
 
   (let ((octets (string-to-octets value :encoding :utf-8 :use-bom nil)))
-    (serialize-value (length octets) stream)
+    (serialize-string (length octets) stream)
     (write-sequence octets stream)))
 
 
@@ -652,7 +675,7 @@
    called on each element of the vector. FN should write each element
    it is called on to the stream passed to it in the second argument"
 
-  (serialize-value (length vector) stream)
+  (serialize-u32 (length vector) stream)
   (foreach (rcurry fn stream) vector))
 
 
@@ -708,12 +731,12 @@
     (cond
       (max
        (write-byte #x01 stream)
-       (serialize-value min stream)
-       (serialize-value max stream))
+       (serialize-u32 min stream)
+       (serialize-u32 max stream))
 
       (t
        (write-byte #x00 stream)
-       (serialize-value min stream)))))
+       (serialize-u32 min stream)))))
 
 
 ;;; Global Variables
@@ -1031,7 +1054,7 @@
   (destructuring-bind (index) operands
     (check-type index (integer 0))
 
-    (serialize-value index stream)))
+    (serialize-u32 index stream)))
 
 
 (defmethod serialize-instruction-operands ((op (eql 'br_table)) operands stream)
@@ -1039,8 +1062,8 @@
 
   (assert (not (emptyp operands)))
 
-  (serialize-value (1- (length operands)) stream)
-  (foreach (rcurry #'serialize-value stream) operands))
+  (serialize-u32 (1- (length operands)) stream)
+  (foreach (rcurry #'serialize-u32 stream) operands))
 
 
 ;;;; Call Indirect
@@ -1051,7 +1074,7 @@
   (destructuring-bind (type) operands
     (check-type type (integer 0))
 
-    (serialize-value type stream)
+    (serialize-u32 type stream)
     (write-byte #x00 stream)))
 
 
@@ -1079,7 +1102,7 @@
   (destructuring-bind (index) operands
     (check-type index (integer 0))
 
-    (serialize-value index stream)))
+    (serialize-u32 index stream)))
 
 
 ;;;; Memory Load and Store
@@ -1163,8 +1186,8 @@
     (check-type alignment (integer 0))
     (check-type offset (integer 0))
 
-    (serialize-value alignment stream)
-    (serialize-value offset stream)))
+    (serialize-u32 alignment stream)
+    (serialize-u32 offset stream)))
 
 
 ;;;; Memory Pages
@@ -1181,24 +1204,20 @@
 ;;; Constants
 
 (defmethod serialize-instruction-operands ((op (eql 'i32.const)) operands stream)
-  (serialize-constant operands stream))
+  (destructuring-bind (constant) operands
+    (serialize-integer constant stream)))
 
 (defmethod serialize-instruction-operands ((op (eql 'i64.const)) operands stream)
-  (serialize-constant operands stream))
+  (destructuring-bind (constant) operands
+    (serialize-integer constant stream)))
 
 (defmethod serialize-instruction-operands ((op (eql 'f32.const)) operands stream)
-  (serialize-constant operands stream))
+  (destructuring-bind (constant) operands
+    (serialize-float constant stream)))
 
 (defmethod serialize-instruction-operands ((op (eql 'f64.const)) operands stream)
-  (serialize-constant operands stream))
-
-(defun serialize-constant (operands stream)
-  "Serialize the value operand of a constant instruction."
-
   (destructuring-bind (constant) operands
-    (check-type constant number)
-
-    (serialize-value constant stream)))
+    (serialize-double-float constant stream)))
 
 
 ;;; Expressions
