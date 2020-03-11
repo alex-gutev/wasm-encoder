@@ -662,7 +662,7 @@
   "Serialize a string to a UTF-8 encoded string without BOM."
 
   (let ((octets (string-to-octets value :encoding :utf-8 :use-bom nil)))
-    (serialize-string (length octets) stream)
+    (serialize-u32 (length octets) stream)
     (write-sequence octets stream)))
 
 
