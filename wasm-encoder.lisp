@@ -685,11 +685,11 @@
   "Serialize a WebAssembly value type."
 
   (write-byte
-   (ecase type
+   (ecase (intern-symbol type)
      (i32 #x7F)
      (i64 #x7E)
      (f32 #x7D)
-     (f64 #x7C))                      ; Empty result type
+     (f64 #x7C))
 
    stream))
 
@@ -703,6 +703,25 @@
     (write-byte #x60 stream)
     (serialize-vector #'serialize-type params stream)
     (serialize-vector #'serialize-type results stream)))
+
+(defun intern-symbol (sym)
+  "Intern the symbol SYM in the package WASM-ENCODER."
+
+  (intern (symbol-name sym) (find-package :wasm-encoder)))
+
+(defun intern-symbols (syms)
+  "If SYMS is a symbol intern it into WASM-ENCODER. If SYMS is a list,
+   apply INTERN-SYMBOLS on each of element otherwise return SYMS as
+   is."
+
+  (match syms
+    ((type list)
+     (map #'intern-symbols syms))
+
+    ((type symbol)
+     (intern-symbol syms))
+
+    (_ syms)))
 
 
 ;;; Memory and Table Declarations
@@ -964,11 +983,12 @@
   (match instruction
     ((or (list* op operands) op)
 
-     (let ((opcode (get op +op-codes+)))
+     (let* ((op (intern-symbol op))
+	    (opcode (get op +op-codes+)))
        (assert opcode)
 
        (write-byte opcode stream)
-       (serialize-instruction-operands op operands stream)))))
+       (serialize-instruction-operands op (intern-symbols operands) stream)))))
 
 (defgeneric serialize-instruction-operands (op operands stream)
   (:documentation
