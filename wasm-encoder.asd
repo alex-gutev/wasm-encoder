@@ -37,4 +37,18 @@
 	       #:flexi-streams)
 
   :components ((:file "package")
-               (:file "wasm-encoder")))
+               (:file "wasm-encoder"))
+
+  :in-order-to ((asdf:test-op (asdf:test-op :wasm-encoder/test))))
+
+(asdf:defsystem #:wasm-encoder/test
+  :description "Tests for wasm-encoder."
+  :author "Alexander Gutev"
+  :license "MIT"
+  :depends-on (#:wasm-encoder #:prove #:prove-asdf)
+  :defsystem-depends-on (#:prove-asdf)
+
+  :components ((:test-file "test"))
+
+  :perform (asdf:test-op :after (op c)
+			 (funcall (intern #.(string :run) :prove) c :reporter :fiveam)))
