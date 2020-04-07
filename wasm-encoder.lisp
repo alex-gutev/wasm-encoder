@@ -76,7 +76,6 @@
   data)
 
 
-
 (defstruct wasm-function-type
   "Represents a function type signature, with the argument types
    PARAMS and result types RESULTS. Currently RESULTS may contains at
@@ -206,7 +205,7 @@
                   stream)
 
   (with-struct-slots wasm-module-
-      (types imports functions tables memory globals exports elements data)
+      (types imports functions tables memory globals exports start elements data)
       module
 
     ;; Function Type Indices
@@ -229,6 +228,9 @@
 
     ;; Exports Section
     (serialize-export-section exports stream)
+
+    ;; Start Section
+    (serialize-start-section start stream)
 
     ;; Indirect Function Table Elements
     (serialize-table-elements elements stream)
