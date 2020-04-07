@@ -351,19 +351,19 @@
     (serialize-string name stream)
 
     (ecase type
-      (func
+      (:func
        (write-byte #x00 stream)
        (serialize-u32 desc stream))
 
-      (table
+      (:table
        (write-byte #x01 stream)
-       (serialize-u32 desc stream))
+       (serialize-table desc stream))
 
-      (memory
+      (:memory
        (write-byte #x02 stream)
        (serialize-memory desc stream))
 
-      (global
+      (:global
        (write-byte #x03 stream)
        (serialize-global (first desc) (second desc) stream)))))
 
@@ -440,10 +440,10 @@
 
     (write-byte
      (ecase type
-       (func #x00)
-       (table #x01)
-       (memory #x02)
-       (global #x03))
+       (:func #x00)
+       (:table #x01)
+       (:memory #x02)
+       (:global #x03))
      stream)
 
     (serialize-u32 index stream)))
