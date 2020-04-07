@@ -539,7 +539,7 @@
              (loop
                 with type = (at it)
                 for count = 0 then (1+ count)
-                until (endp it)
+                until (or (endp it) (/= (at it) type))
                 do (advance it)
                 finally (return (cons type count)))))
 
@@ -575,7 +575,7 @@
 
     (serialize-u32 memory stream)
     (serialize-expression offset stream)
-    (serialize-vector (rcurry #'write-byte stream) bytes stream)))
+    (serialize-vector #'write-byte bytes stream)))
 
 
 ;;; Numbers
