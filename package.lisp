@@ -43,14 +43,73 @@
    ;; Types
 
    #:wasm-module
+   #:wasm-module-types
+   #:wasm-module-imports
+   #:wasm-module-functions
+   #:wasm-module-tabls
+   #:wasm-module-memory
+   #:wasm-module-globals
+   #:wasm-module-exports
+   #:wasm-module-start
+   #:wasm-module-elements
+   #:wasm-module-data
+   #:wasm-module-p
+   #:make-wasm-module
+
    #:wasm-function-type
+   #:wasm-function-type-params
+   #:wasm-function-type-results
+   #:wasm-function-type-p
+   #:make-wasm-function-type
+
    #:wasm-import
+   #:wasm-import-module
+   #:wasm-import-name
+   #:wasm-import-type
+   #:wasm-import-desc
+   #:wasm-import-p
+   #:make-wasm-import
+
    #:wasm-export
+   #:wasm-export-name
+   #:wasm-export-type
+   #:wasm-export-index
+   #:wasm-export-p
+   #:make-wasm-export
+
    #:wasm-limit
+   #:wasm-limit-min
+   #:wasm-limit-max
+   #:wasm-limit-p
+   #:make-wasm-limit
+
    #:wasm-global
+   #:wasm-global-type
+   #:wasm-global-mutable-p
+   #:wasm-global-init
+   #:wasm-global-p
+   #:make-wasm-global
+
    #:wasm-table
+   #:wasm-table-index
+   #:wasm-table-offset
+   #:wasm-table-functions
+   #:wasm-table-p
+   #:make-wasm-table
+
    #:wasm-function
+   #:wasm-function-type
+   #:wasm-function-locals
+   #:wasm-function-code
+   #:wasm-function-p
+   #:make-wasm-function
+
    #:wasm-data
+   #:wasm-data-offset
+   #:wasm-data-bytes
+   #:wasm-data-memory
+   #:wasm-data-p
+   #:make-wasm-data
 
    ;; Functions
 
