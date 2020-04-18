@@ -193,6 +193,12 @@
 (deftype i32 ()
   `(integer ,(- (expt 2 31)) ,(1- (expt 2 31))))
 
+(deftype u64 ()
+  `(integer 0 ,(1- (expt 2 64))))
+
+(deftype i64 ()
+  `(integer ,(- (expt 2 63)) ,(1- (expt 2 63))))
+
 
 ;;; Module Serialization
 
@@ -604,33 +610,46 @@
 (defun serialize-u32 (value stream)
   (check-type value u32)
 
-  (serialize-integer value stream))
+  (serialize-unsigned value stream))
 
 (defun serialize-i32 (value stream)
   (check-type value i32)
 
-  (serialize-integer value stream))
+  (serialize-signed value stream))
 
 
-(defun serialize-integer (value stream)
-  "Serialize an integer to LEB128 format"
+(defun serialize-unsigned (value stream)
+  "Serialize an unsigned integer to LEB128 format"
 
-  (check-type value integer)
+  (check-type value (integer 0))
 
-  (flet ((more? (n)
-           (and (not (zerop n))
-                (/= n -1))))
+  (nlet encode ((n value))
+    (let ((b (ldb (byte 7 0) n))
+	  (n (ash n -7)))
+      (cond
+	((zerop n)
+	 (write-byte b stream))
 
-    (nlet encode ((n value))
-      (let ((b (ldb (byte 7 0) n))
-            (n (ash n -7)))
+	(t
+	 (write-byte (logior b #x80) stream)
+	 (encode n))))))
 
-        (write-byte
-         (if (more? n) (logior b #x80) b)
-         stream)
+(defun serialize-signed (value stream)
+  "Serialize a signed integer to LEB128 format"
 
-        (when (more? n)
-          (encode n))))))
+  (nlet encode ((n value))
+    (let ((b (ldb (byte 7 0) n))
+	  (n (ash n -7)))
+
+      (cond
+	((or (and (zerop n) (not (logbitp 6 b)))
+	     (and (= n -1) (logbitp 6 b)))
+	 (write-byte b stream))
+
+	(t
+	 (write-byte (logior b #x80) stream)
+	 (encode n))))))
+
 
 (defun serialize-32-bit (value stream)
   "Serialize an integer value to 4 bytes in little endian order."
@@ -1227,11 +1246,15 @@
 
 (defmethod serialize-instruction-operands ((op (eql 'i32.const)) operands stream)
   (destructuring-bind (constant) operands
-    (serialize-integer constant stream)))
+    (etypecase constant
+      (i32 (serialize-i32 constant stream))
+      (u32 (serialize-u32 constant stream)))))
 
 (defmethod serialize-instruction-operands ((op (eql 'i64.const)) operands stream)
   (destructuring-bind (constant) operands
-    (serialize-integer constant stream)))
+    (etypecase constant
+      (i64 (serialize-signed constant stream))
+      (u64 (serialize-unsigned constant stream)))))
 
 (defmethod serialize-instruction-operands ((op (eql 'f32.const)) operands stream)
   (destructuring-bind (constant) operands

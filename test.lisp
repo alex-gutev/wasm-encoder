@@ -97,6 +97,7 @@
       (subtest "Unsigned"
 	(test-encoding stream (serialize-u32 #x18 stream) #(#x18))
 	(test-encoding stream (serialize-u32 #x7D stream) #(#x7D))
+	(test-encoding stream (serialize-u32 64 stream) #(64))
 	(test-encoding stream (serialize-u32 #xA52 stream) #(#xD2 #x14))
 
 	(test-encoding stream
@@ -113,7 +114,8 @@
 
       (subtest "Signed"
 	(test-encoding stream (serialize-i32 #x18 stream) #(#x18))
-	(test-encoding stream (serialize-i32 #x7D stream) #(#x7D))
+	(test-encoding stream (serialize-i32 #x7D stream) #(#xFD #x00))
+	(test-encoding stream (serialize-i32 64 stream) #(#xC0 #x00))
 	(test-encoding stream (serialize-i32 #xA52 stream) #(#xD2 #x14))
 
 	(test-encoding stream (serialize-i32 -15 stream) #(#x71))
@@ -1671,7 +1673,7 @@
 				:functions '(9 8)))
 	 stream)
 
-	#(#x09 #x10		   ; Section ID 9, 16 Bytes
+	#(#x09 #x11		   ; Section ID 9, 16 Bytes
 	  #x02			   ; Two Table Element Initializations
 
 	  #x00				; Table 0
@@ -1679,7 +1681,7 @@
 	  #x03 5 1 3			; 3 Functions [5, 1, 3]
 
 	  #x00				; Table 0
-	  #x41 100 #x0B			; i32.const 100
+	  #x41 #xE4 #x0 #x0B			; i32.const 100
 	  #x02 9 8)))			; 2 Functions [5, 1, 3]
 
     (subtest "Code Section"
