@@ -247,3 +247,60 @@ of the `WASM-DATA` structure, which has the following slots:
  </dl>
 
 
+### Instructions
+
+A WebAssembly instruction is represented by a symbol of which the
+symbol name is equal to the instruction's mnemonic. Any symbol, in any
+package, with a symbol name that is equal to a WebAssembly instruction
+mnemonic can be used.
+
+Instructions which take immediate operands are represented by a list
+in which the first element (the `CAR`) is the instruction mnemonic and
+the remaining elements are the operands. The interpretation of the
+operands depends on the instruction:
+
+#### Branch Instructions
+
+The `BR` and `BR_IF` branch instructions each take a single immediate
+operand, an unsigned integer interpreted as the index of the block
+which is the branch target.
+
+The `BR_TABLE` takes a variable number of operands, where each operand
+is an unsigned integer, interpreted as a block index.
+
+**Examples:**
+
+```
+(BR 0)    ;; Branch to block 0
+(BR_IF 2) ;; Branch to block 2
+(BR_TABLE 0 1 2)
+```
+
+
+#### Call Instructions
+
+The `CALL` instruction takes a single operand, an unsigned integer
+interpreted as the index of the function being called.
+
+The `CALL_INDIRECT` instruction takes a single operand, an unsigned
+integer interpreted as the index of the function type signature.
+
+**Examples:**
+
+```
+(CALL 5)             ;; Call function 5
+(CALL_INDIRECT 2)    ;; Indirect call to a function with type signature index 2
+```
+
+
+#### Local and Global Variable Instructions
+
+The instructions for retrieving/setting the value of a local/global
+variable, take a single operand, an unsigned integer interpreted as
+the local variable index.
+
+ - `LOCAL.GET`
+ - `LOCAL.SET`
+ - `LOCAL.TEE`
+ - `GLOBAL.GET`
+ - `GLOBAL.SET`
