@@ -304,3 +304,72 @@ the local variable index.
  - `LOCAL.TEE`
  - `GLOBAL.GET`
  - `GLOBAL.SET`
+
+#### Memory Instructions
+
+Memory load/store instructions take an optional list of immediate
+arguments specifying the expected alignment and offset. These arguments
+take the following form:
+
+```
+(I32.STORE (ALIGN a) (OFFSET o)) ;; Alignment = a, Offset = o
+```
+
+The alignment argument is a list of two elements where the first
+element is a symbol, with name `ALIGN`, and the second element is an
+unsigned integer specifying the alignment as a power of two. If the
+alignment argument is omitted a default alignment of `2` is assumed.
+
+The offset argument is a list of two elements where the first element
+is a symbol, with name `OFFSET`, and the second element is an unsigned
+integer specifying the offset. If this argument is omitted a default
+offset of `0` is assumed.
+
+**NOTE:** As with the instruction mnemonics any symbol, in any
+package, with symbol name `ALIGN` or `OFFSET` can be used to specify
+the alignment and offset arguments.
+
+The alignment and offset arguments can be specified in any order and
+either one, or both, can be omitted. If both arguments are omitted the
+instruction can either take the form of a list containing only the
+instruction mnemonic, or the instruction mnemonic symbol by itself.
+
+**Examples:**
+
+```
+(I32.LOAD (OFFSET 8)) ;; Offset = 8
+(I32.STORE (ALIGN 1)) ;; Alignment = 1
+I64.STORE             ;; Default Alignment = 2 and Offset = 0
+```
+
+The instructions falling within this group are all the typed `xx.LOAD`
+and `xx.STORE` instructions (where `xx` is the value type), including
+the instructions with a storage size which is smaller than the size of
+the type.
+
+
+#### Constant Instructions
+
+Constant instructions take a single immediate argument which is the
+literal value.
+
+ - `I32.CONST` and `I64.CONST` take either a signed or unsigned 32-bit
+   (64-bit in the case of `I64.CONST`) integer argument. However,
+   regardless of whether the operand value is signed or not, the value
+   itself is always encoded as a signed integer in twos-complement.
+
+ - `F32.CONST` takes a single precision floating-point
+   (`SINGLE-FLOAT`) value as its argument.
+
+ - `F64.CONST` takes either a single or double precision
+   floating-point argument.
+
+**Examples:**
+
+```
+(I32.CONST 1)      ;; 32-bit integer value 1
+(I64.CONST -955)   ;; 64-bit integer value -955
+
+(F32.CONST 2.33)   ;; Single precision float value 2.33
+(F64.CONST 5.66d0) ;; Double precision float value 5.66
+```
