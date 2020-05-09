@@ -23,6 +23,16 @@ Slots:
  - `ELEMENTS`
  - `DATA`
 
+The function `SERIALIZE-MODULE` serializes a `WASM-MODULE` to a given
+output stream.
+
+Function: `SERIALIZE-MODULE MODULE STREAM`
+
+ - `MODULE` -- The `WASM-MODULE` to serialize.
+ - `STREAM` -- Output stream to which to serialize the module. This
+   must be a binary output stream with element type `(UNSIGNED-BYTE
+   8)`.
+
 ### Type Section
 
 The `TYPES` slot contains the list of the function types comprising the
