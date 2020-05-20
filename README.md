@@ -383,3 +383,96 @@ literal value.
 (F32.CONST 2.33)   ;; Single precision float value 2.33
 (F64.CONST 5.66d0) ;; Double precision float value 5.66
 ```
+
+#### Structured Block Instructions
+
+Structured block instructions are represented by a list with the first
+element being the block type and the instructions, comprising the body
+of the block, in the remaining elements. Additionally, the second
+element of the list may be of the form `(RESULT type)` where `type` is
+the type identifier symbol encoding the block's result type. If the
+second element is not of this form it is assumed to be an instruction
+and the block is assumed to not have a result type, that is it does
+not return a value.
+
+The `BLOCK` and `LOOP` block instructions follow this representation
+exactly.
+
+**Examples:**
+
+```
+;; Simple block
+(block
+  (local.get 1)
+  (br_if 0)
+  (call 0))
+```
+
+```
+;; Block with result type
+(block (result i32)
+  (local.get 1)
+  (br_if 0)
+
+  (local.get 2)
+  (local.get 3)
+  i32.add)
+```
+
+```
+;; Simple Loop
+(loop
+  (call 0)
+  (local.get 1)
+  (i32.const 5)
+  i32.lt
+  (br_if 0))
+```
+
+
+The `IF` instruction is represented by a list of the following form:
+
+```
+(IF (THEN instructions...)
+    (ELSE instructions...))
+```
+
+Where `instructions` are the instructions comprising the body of the
+`THEN` and `ELSE` branches. The `(ELSE ...)` element may be omitted in
+which case the if instruction does not have an else branch.
+
+The `IF` instruction may optionally have a second element of the form
+`(RESULT type)` where `type` is the type identifier symbol encoding
+the result type of the block. If this is omitted the `IF` instruction
+is assumed to have no result type.
+
+**Examples:**
+
+```
+;; Simple If instruction without else branch
+
+(local.get 0)
+(if (then (call 0))
+```
+
+```
+;; Simple If instruction with else branch
+
+(local.get 0)
+(if (then (call 0))
+    (else (call 1)))
+```
+
+```
+;; If instruction with result type
+
+(local.get 0)
+(i32.const 0)
+i32.ge
+
+(if (result i32)
+    (then (local.get 0))
+    (else (local.get 0)
+          (i32.const -1)
+          i32.mul))
+```
