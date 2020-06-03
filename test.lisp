@@ -1343,7 +1343,17 @@
 	(test-encoding stream
 	  (serialize-instruction `(i32.const ,(1- (expt 2 32))) stream)
 
-	  #(#x41 #xFF #xFF #xFF #xFF #x0F)))
+	  #(#x41 #x7F))
+
+	(test-encoding stream
+	  (serialize-instruction `(i32.const ,(expt 2 31)) stream)
+
+	  #(#x41 #x80 #x80 #x80 #x80 #x78))
+
+	(test-encoding stream
+	  (serialize-instruction `(i32.const ,(+ (expt 2 31) (expt 2 23) 4 1)) stream)
+
+	  #(#x41 #x85 #x80 #x80 #x84 #x78)))
 
       (subtest "i64.const"
 	(test-encoding stream
@@ -1367,7 +1377,17 @@
 	(test-encoding stream
 	  (serialize-instruction `(i64.const ,(1- (expt 2 64))) stream)
 
-	  #(#x42 #xFF #xFF #xFF #xFF #xFF #xFF #xFF #xFF #xFF #x01)))
+	  #(#x42 #x7F))
+
+	(test-encoding stream
+	  (serialize-instruction `(i64.const ,(expt 2 63)) stream)
+
+	  #(#x42 #x80 #x80 #x80 #x80 #x80 #x80 #x80 #x80 #x80 #x7F))
+
+	(test-encoding stream
+	  (serialize-instruction `(i64.const ,(+ (expt 2 63) (expt 2 43) (expt 2 32) 16 1)) stream)
+
+	  #(#x42 #x91 #x80 #x80 #x80 #x90 #x80 #x82 #x80 #x80 #x7F)))
 
       (subtest "f32.const"
 	(test-encoding stream
