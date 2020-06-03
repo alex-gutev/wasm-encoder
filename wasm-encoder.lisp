@@ -1248,13 +1248,13 @@
   (destructuring-bind (constant) operands
     (etypecase constant
       (i32 (serialize-i32 constant stream))
-      (u32 (serialize-u32 constant stream)))))
+      (u32 (serialize-signed (logior (- (expt 2 32)) constant) stream)))))
 
 (defmethod serialize-instruction-operands ((op (eql 'i64.const)) operands stream)
   (destructuring-bind (constant) operands
     (etypecase constant
       (i64 (serialize-signed constant stream))
-      (u64 (serialize-unsigned constant stream)))))
+      (u64 (serialize-signed (logior (- (expt 2 64)) constant) stream)))))
 
 (defmethod serialize-instruction-operands ((op (eql 'f32.const)) operands stream)
   (destructuring-bind (constant) operands
