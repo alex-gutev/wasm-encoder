@@ -45,10 +45,9 @@
   :description "Tests for wasm-encoder."
   :author "Alexander Gutev"
   :license "MIT"
-  :depends-on (#:wasm-encoder #:prove #:prove-asdf)
-  :defsystem-depends-on (#:prove-asdf)
+  :depends-on (#:wasm-encoder #:fiveam)
 
-  :components ((:test-file "test"))
+  :components ((:file "test"))
 
   :perform (asdf:test-op :after (op c)
-			 (funcall (intern #.(string :run) :prove) c :reporter :fiveam)))
+			 (uiop:symbol-call '#:wasm-encoder/test '#:test-wasm-encoder)))
