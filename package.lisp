@@ -97,6 +97,13 @@
    #:wasm-table-p
    #:make-wasm-table
 
+   #:wasm-table-type
+   #:wasm-table-type-type
+   #:wasm-table-type-min
+   #:wasm-table-type-max
+   #:wasm-table-type-p
+   #:make-wasm-table-type
+
    #:wasm-function
    #:wasm-function-type
    #:wasm-function-locals

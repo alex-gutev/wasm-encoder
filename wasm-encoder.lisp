@@ -184,6 +184,12 @@
   bytes
   (memory 0))
 
+(defstruct (wasm-table-type (:include wasm-limit))
+  "Represents a WebAssembly table type.
+
+   TYPE is the type of element stored in the table."
+
+  (type 'funcref))
 
 ;;;; Value Types
 
@@ -766,16 +772,12 @@
 
   (serialize-limit limit stream))
 
-(defun serialize-table (limit stream &key (element-type 'funcref))
+(defun serialize-table (table stream)
   "Serialize a table object entry with limit, represented by a
    WASM-LIMIT object, given by LIMIT."
 
-  (flet ((serialize-type (type)
-           (ecase type
-             (funcref (write-byte #x70 stream)))))
-
-    (serialize-type element-type)
-    (serialize-limit limit stream)))
+  (serialize-ref-type (wasm-table-type-type table) stream)
+  (serialize-limit table stream))
 
 (defun serialize-limit (limit stream)
   "Serialize a memory/table limit represented by a WASM-LIMIT object."
