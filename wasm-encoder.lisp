@@ -710,7 +710,20 @@
      (i32 #x7F)
      (i64 #x7E)
      (f32 #x7D)
-     (f64 #x7C))
+     (f64 #x7C)
+
+     (funcref #x70)
+     (externref #x6F))
+
+   stream))
+
+(defun serialize-ref-type (type stream)
+  "Serialize a WebAssembly function reference type."
+
+  (write-byte
+   (ecase (intern-symbol type)
+     (funcref #x70)
+     (externref #x6F))
 
    stream))
 
@@ -810,12 +823,16 @@
 
     (drop . #x1A)
     (select . #x1B)
+    ((select) . #x1C)
 
     (local.get . #x20)
     (local.set . #x21)
     (local.tee . #x22)
     (global.get . #x23)
     (global.set . #x24)
+
+    (table.get . #x25)
+    (table.set . #x26)
 
     (i32.load . #x28)
     (i64.load . #x29)
@@ -986,7 +1003,38 @@
     (i32.reinterpret_f32 . #xBC)
     (i64.reinterpret_f64 . #xBD)
     (f32.reinterpret_i32 . #xBE)
-    (f64.reinterpret_i64 . #xBF))
+    (f64.reinterpret_i64 . #xBF)
+
+    (i32.extend8_s . #xC0)
+    (i32.extend16_s . #xC1)
+    (i64.extend8_s . #xC2)
+    (i64.extend16_s . #xC3)
+    (i64.extend32_s . #xC4)
+
+    (ref.null . #xD0)
+    (ref.is_null . #xD1)
+    (ref.func . #xD2)
+
+    (i32.trunc_sat_f32_s . (#xFC #X00))
+    (i32.trunc_sat_f32_u . (#xFC #X01))
+    (i32.trunc_sat_f64_s . (#xFC #X02))
+    (i32.trunc_sat_f64_u . (#xFC #X03))
+    (i64.trunc_sat_f32_s . (#xFC #X04))
+    (i64.trunc_sat_f32_u . (#xFC #X05))
+    (i64.trunc_sat_f64_s . (#xFC #X06))
+    (i64.trunc_sat_f64_u . (#xFC #X07))
+
+    (memory.init . (#xFC #x08))
+    (data.drop . (#xFC #x09))
+    (memory.copy . (#xFC #x0A))
+    (memory.fill . (#xFC #x0B))
+
+    (table.init . (#xFC #x0C))
+    (elem.drop . (#xFC #x0D))
+    (table.copy . (#xFC #x0E))
+    (table.grow . (#xFC #x0F))
+    (table.size . (#xFC #x10))
+    (table.fill . (#xFC #x11)))
 
   "WebAssembly Instruction Opcode Map.")
 
@@ -1005,10 +1053,12 @@
     ((or (list* op operands) op)
 
      (let* ((op (intern-symbol op))
-	    (opcode (get op +op-codes+)))
+	    (opcode (or
+		     (when (listp instruction) (get (list op) +op-codes+))
+		     (get op +op-codes+))))
        (assert opcode)
 
-       (write-byte opcode stream)
+       (write-sequence (ensure-list opcode) stream)
        (serialize-instruction-operands op (intern-symbols operands) stream)))))
 
 (defgeneric serialize-instruction-operands (op operands stream)
@@ -1047,6 +1097,15 @@
 
 (defun serialize-nil-type (stream)
   (write-byte #x40 stream))
+
+
+;;;; Parametric Instructions
+
+(defmethod serialize-instruction-operands ((op (eql 'select)) operands stream)
+  "Serialize the value types of the a select t* instruction"
+
+  (unless (emptyp operands)
+    (serialize-vector #'serialize-type operands stream)))
 
 
 ;;;; If/Then/Else Blocks
@@ -1112,11 +1171,11 @@
 (defmethod serialize-instruction-operands ((op (eql 'call_indirect)) operands stream)
   "Serialize the type signature of a call indirect instruction."
 
-  (destructuring-bind (type) operands
+  (destructuring-bind (type &optional (table 0)) operands
     (check-type type (integer 0))
 
     (serialize-u32 type stream)
-    (write-byte #x00 stream)))
+    (write-byte table stream)))
 
 
 ;;;; Variables
@@ -1145,6 +1204,50 @@
 
     (serialize-u32 index stream)))
 
+
+;;;; Tables
+
+(defmethod serialize-instruction-operands ((op (eql 'table.get)) operands stream)
+  (serialize-table-instruction operands stream))
+
+(defmethod serialize-instruction-operands ((op (eql 'table.set)) operands stream)
+  (serialize-table-instruction operands stream))
+
+(defmethod serialize-table-instruction (operands stream)
+  "Serialize the table index of a table instruction."
+
+  (destructuring-bind (index) operands
+    (check-type index (integer 0))
+
+    (serialize-u32 index stream)))
+
+(defmethod serialize-instruction-operands ((op (eql 'table.init)) operands stream)
+  (destructuring-bind (elem table) operands
+    (check-type elem (integer 0))
+    (check-type table (integer 0))
+
+    (serialize-u32 elem stream)
+    (serialize-u32 table stream)))
+
+(defmethod serialize-instruction-operands ((op (eql 'table.copy)) operands stream)
+  (destructuring-bind (elem table) operands
+    (check-type elem (integer 0))
+    (check-type table (integer 0))
+
+    (serialize-u32 elem stream)
+    (serialize-u32 table stream)))
+
+(defmethod serialize-instruction-operands ((op (eql 'elem.drop)) operands stream)
+  (serialize-table-instruction operands stream))
+
+(defmethod serialize-instruction-operands ((op (eql 'table.grow)) operands stream)
+  (serialize-table-instruction operands stream))
+
+(defmethod serialize-instruction-operands ((op (eql 'table.size)) operands stream)
+  (serialize-table-instruction operands stream))
+
+(defmethod serialize-instruction-operands ((op (eql 'table.fill)) operands stream)
+  (serialize-table-instruction operands stream))
 
 ;;;; Memory Load and Store
 
@@ -1241,6 +1344,24 @@
   (assert (null operands))
   (write-byte #x00 stream))
 
+(defmethod serialize-instruction-operands ((op (eql 'memory.copy)) operands stream)
+  (assert (null operands))
+  (write-sequence #(#x00 #x00) stream))
+
+(defmethod serialize-instruction-operands ((op (eql 'memory.fill)) operands stream)
+  (assert (null operands))
+  (write-byte #x00 stream))
+
+(defmethod serialize-instruction-operands ((op (eql 'memory.init)) operands stream)
+  (destructuring-bind (dataidx) operands
+    (check-type dataidx (integer 0))
+    (serialize-u32 dataidx stream)
+    (write-byte #x00 stream)))
+
+(defmethod serialize-instruction-operands ((op (eql 'data.drop)) operands stream)
+  (destructuring-bind (dataidx) operands
+    (check-type dataidx (integer 0))
+    (serialize-u32 dataidx stream)))
 
 ;;; Constants
 
@@ -1263,6 +1384,17 @@
 (defmethod serialize-instruction-operands ((op (eql 'f64.const)) operands stream)
   (destructuring-bind (constant) operands
     (serialize-double-float constant stream)))
+
+
+;;; Reference Instructions
+
+(defmethod serialize-instruction-operands ((op (eql 'ref.null)) operands stream)
+  (destructuring-bind (type) operands
+    (serialize-ref-type type stream)))
+
+(defmethod serialize-instruction-operands ((op (eql 'ref.funcidx)) operands stream)
+  (destructuring-bind (index) operands
+    (serialize-u32 index stream)))
 
 
 ;;; Expressions
