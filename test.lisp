@@ -302,17 +302,24 @@
 
   (test-encoding stream
     (serialize-table
-     (make-wasm-limit :min 10)
+     (make-wasm-table-type :min 10)
      stream)
 
     #(#x70 #x00 10))
 
   (test-encoding stream
     (serialize-table
-     (make-wasm-limit :min 10 :max 100)
+     (make-wasm-table-type :min 10 :max 100)
      stream)
 
-    #(#x70 #x01 10 100)))
+    #(#x70 #x01 10 100))
+
+  (test-encoding stream
+    (serialize-table
+     (make-wasm-table-type :type 'externref :min 10 :max 100)
+     stream)
+
+    #(#x6F #x01 10 100)))
 
 (test types-globals
   "Test serialization of global variable types"
@@ -1913,7 +1920,7 @@
 	   (make-wasm-import :module "env"
 			     :name "table"
 			     :type :table
-			     :desc (make-wasm-limit :min 2))
+			     :desc (make-wasm-table-type :min 2))
 
 	   (make-wasm-import :module "env"
 			     :name "memory"
@@ -1926,13 +1933,13 @@
 			     :desc '(i32 t)))
      stream)
 
-    #(#x02 #x37			; Section ID 2, 54 bytes
+    #(#x02 #x37				; Section ID 2, 54 bytes
       #x04				; 4 Imports
 
       ;; Import 1: runtime.fn
       #x07 #x72 #x75 #x6E #x74 #x69 #x6D #x65 ; "runtime"
-      #x02 #x66 #x6E			  ; "fn"
-      #x00 #x05				  ; Function type 5
+      #x02 #x66 #x6E			      ; "fn"
+      #x00 #x05				      ; Function type 5
 
       ;; Import 2: env.table
       #x03 #x65 #x6E #x76		; "env"
@@ -1940,9 +1947,9 @@
       #x01 #x70 #x00 #x02		; Table type funcref, min: 0
 
       ;; Import 3: env.memory
-      #x03 #x65 #x6E #x76		     ; "env"
+      #x03 #x65 #x6E #x76		 ; "env"
       #x06 #x6D #x65 #x6D #x6F #x72 #x79 ; "memory"
-      #x02 #x00 #x01		     ; Memory type, min: 0
+      #x02 #x00 #x01			 ; Memory type, min: 0
 
       ;; Import 4: env.stack
       #x03 #x65 #x6E #x76		; "env"
