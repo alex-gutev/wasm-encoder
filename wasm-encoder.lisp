@@ -151,8 +151,22 @@
    table elements to."
 
   (index 0)
+  (mode :active)
   offset
+  init)
+
+(defstruct wasm-table-init-index
+  "Represents a table element segment initialization using function
+   indices."
+
   functions)
+
+(defstruct wasm-table-init-expressions
+  "Represents a table element segment initialization using
+   expressions"
+
+  type
+  expressions)
 
 (defstruct wasm-function
   "Represents a WebAssembly function.
@@ -497,10 +511,55 @@
   "Serialize a single table element initialization entry, represented
    by a WASM-TABLE object."
 
-  (with-struct-slots wasm-table- (index offset functions) table
-    (serialize-u32 index stream)
-    (serialize-expression offset stream)
-    (serialize-vector #'serialize-u32 functions stream)))
+  (with-struct-slots wasm-table- (index mode offset init) table
+    ;; Serialize Type
+    (write-byte (table-element-type-code table) stream)
+
+    (when (= mode :active)
+      (when (plusp index)
+	(serialize-u32 index stream))
+
+      (serialize-expression offset stream))
+
+    (serialize-table-element-init mode index init stream)))
+
+(defun serialize-table-element-init (mode index init stream)
+  "Serialize a table element initializer.
+
+   MODE is the table element mode.
+
+   INDEX is the table index.
+
+   INIT is the table element initializer.
+
+   STREAM is the output stream"
+
+  (cond
+    ((wasm-table-init-index-p init)
+
+     (when (or (/= mode :active) (plusp index))
+       (write-byte #x00 stream))
+
+     (serialize-vector #'serialize-u32 (wasm-table-init-index-functions init) stream))
+
+    (t
+     (serialize-ref-type (wasm-table-init-expressions-type init) stream)
+     (serialize-vector #'serialize-expression (wasm-table-init-expressions-expressions init) stream))))
+
+(defun table-element-type-code (element)
+  "Return the type code for a table element.
+
+   ELEMENT is the table element.
+
+   Returns the type code as a byte."
+
+  (with-struct-slots wasm-table- (index mode offset init)
+      element
+
+    (logior
+     (if (member mode '(:passive :declarative)) 1 0)
+     (if (or (= mode :declarative) (plusp index)) 2 0)
+     (if (wasm-table-init-expressions-p init) 4 0))))
 
 
 ;;;; Function Sections

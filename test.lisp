@@ -1970,7 +1970,7 @@
 
   (test-encoding stream
     (serialize-table-types
-     (list (make-wasm-limit :min 2 :max 100))
+     (list (make-wasm-table-type :min 2 :max 100))
      stream)
 
     #(#x04 #x05		  ; Section ID 4, 5 bytes
@@ -2040,17 +2040,24 @@
 
     #(#x08 #x01 #x05)))
 
-(test section-table
+(test section-element
   "Test serialization of table elements"
 
   (test-encoding stream
     (serialize-table-elements
-     (list (make-wasm-table :index 0
-			    :offset '((i32.const 2))
-			    :functions '(5 1 3))
-	   (make-wasm-table :index 0
-			    :offset '((i32.const 100))
-			    :functions '(9 8)))
+     (list (make-wasm-table
+	    :index 0
+	    :offset '((i32.const 2))
+	    :init
+	    (make-wasm-table-init-index
+	     :functions '(5 1 3)))
+
+	   (make-wasm-table
+	    :index 0
+	    :offset '((i32.const 100))
+	    :init
+	    (make-wasm-table-init-index
+	     :functions '(9 8))))
      stream)
 
     #(#x09 #x11		   ; Section ID 9, 16 Bytes

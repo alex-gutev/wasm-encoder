@@ -93,9 +93,21 @@
    #:wasm-table
    #:wasm-table-index
    #:wasm-table-offset
-   #:wasm-table-functions
+   #:wasm-table-mode
+   #:wasm-table-init
    #:wasm-table-p
    #:make-wasm-table
+
+   #:wasm-table-init-index
+   #:wasm-table-init-index-functions
+   #:wasm-table-init-index-p
+   #:make-wasm-table-init-index
+
+   #:wasm-table-init-expressions
+   #:wasm-table-init-type
+   #:wasm-table-init-expressions-expressions
+   #:wasm-table-init-expressions-p
+   #:make-wasm-table-init-expressions
 
    #:wasm-table-type
    #:wasm-table-type-type
