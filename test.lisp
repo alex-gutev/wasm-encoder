@@ -353,7 +353,12 @@
   (test-encoding stream
     (serialize-global 'i64 t stream)
 
-    #(#x7E #x01)))
+    #(#x7E #x01))
+
+  (test-encoding stream
+    (serialize-global 'funcref t stream)
+
+    #(#x70 #x01)))
 
 
 ;;; Test Serialization of Instructions
