@@ -888,6 +888,112 @@
     (serialize-instruction '(global.set -5) stream)
     type-error))
 
+;;;; Table Instructions
+
+(test instruction-table.get
+  "Test serialization of TABLE.GET"
+
+  (test-encoding stream
+    (serialize-instruction '(table.get 0) stream)
+
+    #(#x25 #x00))
+
+  (test-encoding stream
+    (serialize-instruction '(table.get #xE5) stream)
+
+    #(#x25 #xE5 #x01)))
+
+(test instruction-table.set
+  "Test serialization of TABLE.SET"
+
+  (test-encoding stream
+    (serialize-instruction '(table.set 0) stream)
+
+    #(#x26 #x00))
+
+  (test-encoding stream
+    (serialize-instruction '(table.set #xE5) stream)
+
+    #(#x26 #xE5 #x01)))
+
+(test instruction-table.init
+  "Test serialization of TABLE.INIT"
+
+  (test-encoding stream
+    (serialize-instruction '(table.init 0 #xC7) stream)
+
+    #(#xFC #x0C #xC7 #x01 #x00))
+
+  (test-encoding stream
+    (serialize-instruction '(table.init #xC5 #x34) stream)
+
+    #(#xFC #x0C #x34 #xC5 #x01)))
+
+(test instruction-elem.drop
+  "Test serialization of ELEM.DROP"
+
+  (test-encoding stream
+    (serialize-instruction '(elem.drop 0) stream)
+
+    #(#xFC #x0D #x00))
+
+  (test-encoding stream
+    (serialize-instruction '(elem.drop #xE5) stream)
+
+    #(#xFC #x0D #xE5 #x01)))
+
+(test instruction-table.copy
+  "Test serialization of TABLE.COPY"
+
+  (test-encoding stream
+    (serialize-instruction '(table.copy 0 1) stream)
+
+    #(#xFC #x0E #x00 #x01))
+
+  (test-encoding stream
+    (serialize-instruction '(table.copy #xC5 #xE4) stream)
+
+    #(#xFC #x0E #xC5 #x01 #xE4 #x01)))
+
+(test instruction-table.grow
+  "Test serialization of TABLE.GROW"
+
+  (test-encoding stream
+    (serialize-instruction '(table.grow 0) stream)
+
+    #(#xFC #x0F #x00))
+
+  (test-encoding stream
+    (serialize-instruction '(table.grow #xE5) stream)
+
+    #(#xFC #x0F #xE5 #x01)))
+
+(test instruction-table.size
+  "Test serialization of TABLE.SIZE"
+
+  (test-encoding stream
+    (serialize-instruction '(table.size 0) stream)
+
+    #(#xFC #x10 #x00))
+
+  (test-encoding stream
+    (serialize-instruction '(table.size #xE5) stream)
+
+    #(#xFC #x10 #xE5 #x01)))
+
+(test instruction-table.fill
+  "Test serialization of TABLE.FILL"
+
+  (test-encoding stream
+    (serialize-instruction '(table.fill 0) stream)
+
+    #(#xFC #x11 #x00))
+
+  (test-encoding stream
+    (serialize-instruction '(table.fill #xC3) stream)
+
+    #(#xFC #x11 #xC3 #x01)))
+
 ;;;; Load Instructions
 
 (test instruction-i32.load-no-offset-alignment
