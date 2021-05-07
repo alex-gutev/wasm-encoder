@@ -651,7 +651,7 @@
 
       #x0B)))
 
-(test instruction-if-else-no-result-type
+(test instruction-if-else-with-result-type
   "Test serialization of IF with else branch with result type"
 
   (test-encoding stream
