@@ -127,6 +127,7 @@
    #:wasm-data-offset
    #:wasm-data-bytes
    #:wasm-data-memory
+   #:wasm-data-mode
    #:wasm-data-p
    #:make-wasm-data
 

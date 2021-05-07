@@ -196,7 +196,8 @@
 
   offset
   bytes
-  (memory 0))
+  (memory 0)
+  (mode :active))
 
 (defstruct (wasm-table-type (:include wasm-limit))
   "Represents a WebAssembly table type.
@@ -641,12 +642,26 @@
    stream))
 
 (defun serialize-data (data stream)
-  (with-struct-slots wasm-data- (offset bytes memory)
+  "Serialize a data segment."
+
+  (with-struct-slots wasm-data- (offset bytes memory mode)
       data
 
-    (serialize-u32 memory stream)
-    (serialize-expression offset stream)
+    (write-byte (data-segment-type-code data) stream)
+
+    (when (= mode :active)
+      (when (plusp memory) (serialize-u32 memory stream))
+      (serialize-expression offset stream))
+
     (serialize-vector #'write-byte bytes stream)))
+
+(defun data-segment-type-code (data)
+  "Determine the type code of a data segment."
+
+  (with-struct-slots wasm-data- (mode memory) data
+    (logior
+     (if (= mode :passive) 1 0)
+     (if (plusp memory) 1 0))))
 
 
 ;;; Numbers
