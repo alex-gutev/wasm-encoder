@@ -757,6 +757,33 @@
 
       #x0B)))
 
+;;;; Reference Instructions
+
+(test instruction-ref.null
+  "Test serialization of REF.NULL"
+
+  (test-encoding stream
+    (serialize-instruction '(ref.null funcref) stream)
+    #(#xD0 #x70))
+
+  (test-encoding stream
+    (serialize-instruction '(ref.null externref) stream)
+    #(#xD0 #x6F)))
+
+(test instruction-ref.is_null
+  "Test serialization of REF.IS_NULL"
+
+  (test-encoding stream
+    (serialize-instruction 'ref.is_null stream)
+    #(#xD1)))
+
+(test instruction-ref.func
+  "Test serialization of REF.FUNC"
+
+  (test-encoding stream
+    (serialize-instruction '(ref.func #xF7) stream)
+    #(#xD2 #xF7 #x01)))
+
 ;;;; Parametric Instructions
 
 (test instruction-drop
