@@ -773,6 +773,17 @@
     (serialize-instruction 'select stream)
     #(#x1B)))
 
+(test instruction-select-multi
+  "Test serialization of SELECT with multiple values."
+
+  ;; Currently this is not semantically valid WASM but the encoded is
+  ;; valid and may be come semantically valid in a future version of
+  ;; the spec.
+
+  (test-encoding stream
+    (serialize-instruction '(select i64 i32) stream)
+    #(#x1C #x02 #x7E #x7F)))
+
 ;;;; Variable Instructions
 
 (test instruction-local.get
