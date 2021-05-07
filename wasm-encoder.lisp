@@ -552,7 +552,11 @@
      (serialize-vector #'serialize-u32 (wasm-table-init-index-functions init) stream))
 
     (t
-     (serialize-ref-type (wasm-table-init-expressions-type init) stream)
+     (when (or (/= mode :active)
+	       (plusp index)
+	       (/= 'funcref (intern-symbol (wasm-table-init-expressions-type init))))
+
+       (serialize-ref-type (wasm-table-init-expressions-type init) stream))
      (serialize-vector #'serialize-expression (wasm-table-init-expressions-expressions init) stream))))
 
 (defun table-element-type-code (element)
@@ -567,7 +571,8 @@
 
     (logior
      (if (member mode '(:passive :declarative)) 1 0)
-     (if (or (= mode :declarative) (plusp index)) 2 0)
+     (if (or (= mode :declarative) (plusp index))
+	 2 0)
      (if (wasm-table-init-expressions-p init) 4 0))))
 
 
