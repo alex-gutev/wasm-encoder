@@ -73,7 +73,8 @@
   exports
   start
   elements
-  data)
+  data
+  (data-count t))
 
 
 (defstruct wasm-function-type
@@ -232,7 +233,7 @@
                   stream)
 
   (with-struct-slots wasm-module-
-      (types imports functions tables memory globals exports start elements data)
+      (types imports functions tables memory globals exports start elements data data-count)
       module
 
     ;; Function Type Indices
@@ -261,6 +262,10 @@
 
     ;; Indirect Function Table Elements
     (serialize-table-elements elements stream)
+
+    ;; Add data count section
+    (when (and data-count (not (emptyp data)))
+      (serialize-data-count-section (length data) stream))
 
     ;; Function Code Section
     (serialize-functions functions stream)
@@ -309,6 +314,9 @@
 
 (defconstant +data-section-id+ 11
   "Memory initialization section identifier.")
+
+(defconstant +data-count-section-id+ 12
+  "Data count section identifier.")
 
 
 ;;;; Serialization Functions
@@ -627,6 +635,21 @@
 
 
 ;;; Data Section
+
+(defun serialize-data-count-section (count stream)
+  "Serialize the data count section.
+
+   COUNT is the number of data segments.
+
+   STREAM is the output stream."
+
+  (serialize-section
+   +data-count-section-id+
+
+   (lambda (stream)
+     (serialize-u32 count stream))
+
+   stream))
 
 (defun serialize-data-section (data stream)
   "Serialize the data section (containing the initialization of the

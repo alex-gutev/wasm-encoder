@@ -53,6 +53,7 @@
    #:wasm-module-start
    #:wasm-module-elements
    #:wasm-module-data
+   #:wasm-module-data-count
    #:wasm-module-p
    #:make-wasm-module
 
