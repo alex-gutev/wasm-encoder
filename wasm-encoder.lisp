@@ -689,7 +689,7 @@
   (with-struct-slots wasm-data- (mode memory) data
     (logior
      (if (= mode :passive) 1 0)
-     (if (plusp memory) 1 0))))
+     (if (plusp memory) 2 0))))
 
 
 ;;; Numbers
