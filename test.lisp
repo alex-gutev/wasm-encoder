@@ -554,6 +554,23 @@
       #x00
       #x0B)))
 
+(test instruction-block-with-type-index
+  "Test serialization of BLOCK with function type index"
+
+  (test-encoding stream
+    (serialize-instruction
+     '(block (type #x77)
+       nop
+       (br 1)
+       unreachable)
+     stream)
+
+    #(#x02 #xF7 #x00
+      #x01
+      #x0C 1
+      #x00
+      #x0B)))
+
 (test instruction-loop-no-result-type
   "Test serialization of LOOP with no result type"
 
@@ -583,6 +600,23 @@
      stream)
 
     #(#x03 #x7F
+      #x01
+      #x0C 1
+      #x00
+      #x0B)))
+
+(test instruction-loop-with-type-index
+  "Test serialization of LOOP with function type index"
+
+  (test-encoding stream
+    (serialize-instruction
+     '(loop (type #x35)
+	 nop
+	 (br 1)
+	 unreachable)
+     stream)
+
+    #(#x03 #x35
       #x01
       #x0C 1
       #x00
@@ -619,6 +653,24 @@
      stream)
 
     #(#x04 #x7F
+      #x01
+      #x0C 1
+      #x00
+      #x0B)))
+
+(test instruction-if-no-else-with-type-index
+  "Test serialization of IF without else branch with function type index"
+
+  (test-encoding stream
+    (serialize-instruction
+     '(if (type #x3F2)
+       (then
+	nop
+	(br 1)
+	unreachable))
+     stream)
+
+    #(#x04 #xF2 #x07
       #x01
       #x0C 1
       #x00
@@ -668,6 +720,33 @@
      stream)
 
     #(#x04 #x7F
+      #x01
+      #x0C 1
+      #x00
+
+      #x05
+      #x0C 2
+      #x01
+
+      #x0B)))
+
+(test instruction-if-else-with-type-index
+  "Test serialization of IF with else branch with function type index"
+
+  (test-encoding stream
+    (serialize-instruction
+     '(if (type #x40)
+       (then
+	nop
+	(br 1)
+	unreachable)
+
+       (else
+	(br 2)
+	nop))
+     stream)
+
+    #(#x04 #xC0 #x0
       #x01
       #x0C 1
       #x00
