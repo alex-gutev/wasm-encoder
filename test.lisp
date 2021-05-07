@@ -2282,8 +2282,8 @@
   (test-encoding stream
     (serialize-function-types '(5 1 3) stream)
 
-    #(#x03 #x04			; Section ID 3, 4 bytes
-      #x03 #x05 #x01 #x03)))	; 3 Type Indices: [5, 1, 3]
+    #(#x03 #x04				; Section ID 3, 4 bytes
+      #x03 #x05 #x01 #x03)))      	; 3 Type Indices: [5, 1, 3]
 
 (test section-table
   "Test serialization of table section"
@@ -2293,8 +2293,8 @@
      (list (make-wasm-table-type :min 2 :max 100))
      stream)
 
-    #(#x04 #x05		  ; Section ID 4, 5 bytes
-      #x01 #x70 #x01 2 100))) ; 1 Table: funcref, min: 2, max: 100
+    #(#x04 #x05			  ; Section ID 4, 5 bytes
+      #x01 #x70 #x01 2 100)))     ; 1 Table: funcref, min: 2, max: 100
 
 (test section-memory
   "Test serialization of memory section"
