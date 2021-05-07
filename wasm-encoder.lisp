@@ -1188,6 +1188,11 @@
      (serialize-type type stream)
      (serialize-instructions body stream))
 
+    ((list* (list 'type index) body)
+     (check-type index (integer 0))
+     (serialize-signed index stream)
+     (serialize-instructions body stream))
+
     (_
      (serialize-nil-type stream)
      (serialize-instructions body stream)))
@@ -1227,6 +1232,11 @@
     (match body
       ((list* (list 'result type) body)
        (serialize-type type stream)
+       (serialize-body body))
+
+      ((list* (list 'type index) body)
+       (check-type index (integer 0))
+       (serialize-signed index stream)
        (serialize-body body))
 
       (_
