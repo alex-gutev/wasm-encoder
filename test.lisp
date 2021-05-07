@@ -1911,6 +1911,43 @@
     (serialize-instruction 'memory.grow stream)
     #(#x40 #x00)))
 
+(test instruction-memory.init
+  "Test serialization of MEMORY.INIT"
+
+  (test-encoding stream
+    (serialize-instruction '(memory.init #x03) stream)
+    #(#xFC #x08 #x03 #x00))
+
+  (test-encoding stream
+    (serialize-instruction '(memory.init #xC7) stream)
+    #(#xFC #x08 #xC7 #x01 #x00)))
+
+(test instruction-data.drop
+  "Test serialization of DATA.DROP"
+
+  (test-encoding stream
+    (serialize-instruction '(data.drop #x03) stream)
+    #(#xFC #x09 #x03))
+
+  (test-encoding stream
+    (serialize-instruction '(data.drop #xC7) stream)
+    #(#xFC #x09 #xC7 #x01)))
+
+(test instruction-memory.copy
+  "Test serialization of MEMORY.COPY"
+
+  (test-encoding stream
+    (serialize-instruction 'memory.copy stream)
+    #(#xFC #x0A #x00 #x00)))
+
+(test instruction-memory.fill
+  "Test serialization of MEMORY.FILL"
+
+  (test-encoding stream
+    (serialize-instruction 'memory.fill stream)
+    #(#xFC #x0B #x00)))
+
+;;;; Constant Instructions
 
 (test instruction-i32.const
   "Test serialization of I32.CONST"
