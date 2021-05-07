@@ -2591,18 +2591,35 @@
      (list (make-wasm-data :offset '((i32.const 16))
 			   :bytes #(1 5 9 45)
 			   :memory 0)
+
 	   (make-wasm-data :offset '((i32.const 0))
 			   :bytes #(7 8 9)
-			   :memory 0))
+			   :memory 0)
+
+	   (make-wasm-data :offset '((i32.const 3))
+			   :bytes #(1 2 3 4 5)
+			   :memory #x8C)
+
+	   (make-wasm-data :mode :passive
+			   :bytes #(1 2 3 4 5)))
+
      stream)
 
-    #(#x0B #x12			; Section ID 11, 18 bytes
-      #x02				; 2 Data Segments
+    #(#x0B #x25				; Section ID 11
+      #x04				; 2 Data Segments
 
       #x00
-      #x41 #x10 #x0B		; i32.const 16
+      #x41 #x10 #x0B			; i32.const 16
       #x04 1 5 9 45
 
       #x00
       #x41 #x0 #x0B			; i32.const 0
-      #x03 7 8 9)))
+      #x03 7 8 9
+
+      #x02
+      #x8C #x01
+      #x41 #x03 #x0B
+      #x05 1 2 3 4 5
+
+      #x01
+      #x05 1 2 3 4 5)))
