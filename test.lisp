@@ -2365,31 +2365,184 @@
 
   (test-encoding stream
     (serialize-table-elements
-     (list (make-wasm-table
-	    :index 0
-	    :offset '((i32.const 2))
-	    :init
-	    (make-wasm-table-init-index
-	     :functions '(5 1 3)))
+     (list
+      ;; Active Elements
+      ;; Table 0
+      ;; Index initialization
 
-	   (make-wasm-table
-	    :index 0
-	    :offset '((i32.const 100))
-	    :init
-	    (make-wasm-table-init-index
-	     :functions '(9 8))))
+      (make-wasm-table
+       :index 0
+       :offset '((i32.const 2))
+       :init
+       (make-wasm-table-init-index
+	:functions '(5 1 3)))
+
+      (make-wasm-table
+       :index 0
+       :offset '((i32.const 100))
+       :mode :active
+       :init
+       (make-wasm-table-init-index
+      	:functions '(9 8)))
+
+      ;; Active element
+      ;; Table 5
+      ;; Index initialization
+
+      (make-wasm-table
+       :index 5
+       :offset '((i32.const 7))
+       :init
+       (make-wasm-table-init-index
+      	:functions '(#xFC 1 3)))
+
+      ;; Active element
+      ;; Table 0
+      ;; Expression initialization
+
+      (make-wasm-table
+       :index 0
+       :offset '((i32.const #xB6))
+       :mode :active
+       :init
+       (make-wasm-table-init-expressions
+      	:type 'funcref
+      	:expressions '(((ref.func 0)) ((ref.func 9)))))
+
+
+      ;; Active element
+      ;; Table 2
+      ;; Expression initialization
+
+      (make-wasm-table
+       :index 2
+       :offset '((i32.const #xB6))
+       :mode :active
+       :init
+       (make-wasm-table-init-expressions
+      	:type 'funcref
+      	:expressions '(((ref.func 0)) ((ref.func 6))))))
+
      stream)
 
-    #(#x09 #x11		   ; Section ID 9, 16 Bytes
-      #x02			   ; Two Table Element Initializations
+    #(#x09 #x36				; Section ID 9
+      #x05				; Five Element Segments
+
+      ;; Element 1
 
       #x00				; Table 0
-      #x41 #x02 #x0B		; i32.const 2
-      #x03 5 1 3			; 3 Functions [5, 1, 3]
+      #x41 #x02 #x0B			; i32.const 2
+      #x03 5 1 3			; Functions [5, 1, 3]
+
+      ;; Element 2
 
       #x00				; Table 0
-      #x41 #xE4 #x0 #x0B			; i32.const 100
-      #x02 9 8)))			; 2 Functions [5, 1, 3]
+      #x41 #xE4 #x0 #x0B		; i32.const 100
+      #x02 9 8				; Functions [9, 8]
+
+      ;; Element 4
+
+      #x02 #x05				; Active element table 5
+      #x41 #x07 #x0B			; i32.const 7
+      #x00
+      #x03 #xFC #x01 #x01 #x03		; Functions [0xFC, 1, 3]
+
+      ;; Element 6
+
+      #x04				 ; Active Element table 0
+      #x41 #xB6 #x01 #x0B		 ; i32.const #xB6
+      #x02 #xD2 #x00 #x0B #xD2 #x09 #x0B ; FUNC.REF Expressions [0, 9]
+
+
+      ;; Element 8
+
+      #x06 #x02				    ; Active Element table 2
+      #x41 #xB6 #x01 #x0B		    ; i32.const #xB6
+      #x70				    ; Type FUNCREF
+      #x02 #xD2 #x00 #x0B #xD2 #x06 #x0B))) ; FUNC.REF Expressions [0, 6]
+
+(test section-element-passive
+  "Test serialization of element sections with passive elements"
+
+  (test-encoding stream
+    (serialize-table-elements
+     (list
+      ;; Passive Element
+      ;; Index initialization
+
+      (make-wasm-table
+       :mode :passive
+       :init
+       (make-wasm-table-init-index
+      	:functions '(1 2 3)))
+
+      ;; Passive element
+      ;; Expression initialization
+
+      (make-wasm-table
+       :offset '((i32.const #xB6))
+       :mode :passive
+       :init
+       (make-wasm-table-init-expressions
+      	:type 'externref
+      	:expressions '(((ref.func 0)) ((ref.func 9))))))
+     stream)
+
+    #(#x09 #x10				; Section ID 9
+      #x02				; Two Table Element Segments
+
+      ;; Element 1
+
+      #x01 #x00				; Passive Element
+      #x03 #x01 #x02 #x03		; Functions [1, 2, 3]
+
+      ;; Element 2
+
+      #x05				; Passive Element
+      #x6F				; Type EXTERNREF
+      #x02 #xD2 #x00 #x0B #xD2 #x09 #x0B)))
+
+(test section-element-declarative
+  "Test serialization of element sections with declarative elements"
+
+  (test-encoding stream
+    (serialize-table-elements
+     (list
+      ;; Declarative element
+      ;; Index initialization
+
+      (make-wasm-table
+       :mode :declarative
+       :init
+       (make-wasm-table-init-index
+      	:functions '(1 2 3)))
+
+      ;; Declarative element
+      ;; Expression initialization
+
+      (make-wasm-table
+       :offset '((i32.const #xB6))
+       :mode :declarative
+       :init
+       (make-wasm-table-init-expressions
+      	:type 'funcref
+      	:expressions '(((ref.func 0)) ((ref.func 7))))))
+
+     stream)
+
+    #(#x09 #x10				; Section ID 9
+      #x02				; Two Table Element Segments
+
+      ;; Element 1
+
+      #x03 #x00				; Declarative Element
+      #x03 #x01 #x02 #x03		; Functions [1, 2, 3]
+
+      ;; Element 2
+
+      #x07				    ; Declarative Element
+      #x70				    ; Type FUNCREF
+      #x02 #xD2 #x00 #x0B #xD2 #x07 #x0B))) ; FUNC.REF Expressions [0, 9]
 
 (test section-code
   "Test serialization of code section"
