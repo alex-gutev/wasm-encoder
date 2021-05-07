@@ -86,10 +86,10 @@
      (with-output-to-sequence (,stream) ,form)
      ,(format nil "~a results in ~a" form type)))
 
-(defmacro test-encode-instruction (op opcode)
+(defmacro test-encode-instruction (op &rest opcodes)
   `(test-encoding stream
      (serialize-instruction ',op stream)
-     #(,opcode)))
+     #(,@opcodes)))
 
 
 ;;; Test Suite Definition
@@ -2037,7 +2037,7 @@
 
     #(#x44 #x00 #x00 #x00 #x00 #x00 #x00 #xF8 #x3F)))
 
-  ;;;; Arithmetic Instructions
+;;;; Arithmetic Instructions
 
 (test instruction-arithmetic
   "Test serialization of arithmetic instructions"
@@ -2175,7 +2175,22 @@
   (test-encode-instruction i32.reinterpret_f32 #xBC)
   (test-encode-instruction i64.reinterpret_f64 #xBD)
   (test-encode-instruction f32.reinterpret_i32 #xBE)
-  (test-encode-instruction f64.reinterpret_i64 #xBF))
+  (test-encode-instruction f64.reinterpret_i64 #xBF)
+
+  (test-encode-instruction i32.extend8_s #xC0)
+  (test-encode-instruction i32.extend16_s #xC1)
+  (test-encode-instruction i64.extend8_s #xC2)
+  (test-encode-instruction i64.extend16_s #xC3)
+  (test-encode-instruction i64.extend32_s #xC4)
+
+  (test-encode-instruction i32.trunc_sat_f32_s #xFC #x00)
+  (test-encode-instruction i32.trunc_sat_f32_u #xFC #x01)
+  (test-encode-instruction i32.trunc_sat_f64_s #xFC #x02)
+  (test-encode-instruction i32.trunc_sat_f64_u #xFC #x03)
+  (test-encode-instruction i64.trunc_sat_f32_s #xFC #x04)
+  (test-encode-instruction i64.trunc_sat_f32_u #xFC #x05)
+  (test-encode-instruction i64.trunc_sat_f64_s #xFC #x06)
+  (test-encode-instruction i64.trunc_sat_f64_u #xFC #x07))
 
 
 ;;;; Test Serialization of Expressions
