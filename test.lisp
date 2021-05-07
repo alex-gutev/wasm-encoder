@@ -82,8 +82,9 @@
 	  (with-output-to-sequence (,stream) ,form))))
 
 (defmacro test-error (stream &body (form type))
-  `(signals ,type (with-output-to-sequence (,stream) ,form)
-	     ,(format nil "~a results in ~a" form type)))
+  `(signals ,type
+     (with-output-to-sequence (,stream) ,form)
+     ,(format nil "~a results in ~a" form type)))
 
 (defmacro test-encode-instruction (op opcode)
   `(test-encoding stream
