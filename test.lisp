@@ -332,6 +332,16 @@
 
     #(#x6F #x01 10 100)))
 
+(test types-tables-errors
+  "Test errors in serialization of table types"
+
+  (test-error stream
+    (serialize-table
+     (make-wasm-table-type :type 'i32 :min 10)
+     stream)
+
+    error))
+
 (test types-globals
   "Test serialization of global variable types"
 
