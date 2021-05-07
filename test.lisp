@@ -207,7 +207,10 @@
   (test-encoding stream (serialize-type 'i32 stream) #(#x7F))
   (test-encoding stream (serialize-type 'i64 stream) #(#x7E))
   (test-encoding stream (serialize-type 'f32 stream) #(#x7D))
-  (test-encoding stream (serialize-type 'f64 stream) #(#x7C)))
+  (test-encoding stream (serialize-type 'f64 stream) #(#x7C))
+
+  (test-encoding stream (serialize-type 'funcref stream) #(#x70))
+  (test-encoding stream (serialize-type 'externref stream) #(#x6F)))
 
 (test types-values-error
   "Test errors signalled when serializing unknown types"
@@ -247,7 +250,14 @@
      (make-wasm-function-type :params nil :results nil)
      stream)
 
-    #(#x60 #x00 #x00)))
+    #(#x60 #x00 #x00))
+
+  (test-encoding stream
+    (serialize-ftype
+     (make-wasm-function-type :params '(i32 i32) :results '(funcref externref))
+     stream)
+
+    #(#x60 #x02 #x7F #x7F #x02 #x70 #x6F)))
 
 (test types-limits
   "Test serialization of limit types"
