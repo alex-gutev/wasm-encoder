@@ -408,7 +408,11 @@
 
   (test-error stream
     (serialize-instruction '(br -10) stream)
-    type-error))
+    type-error)
+
+  (test-error stream
+    (serialize-instruction 'br stream)
+    error))
 
 (test instruction-branch-br_if
   "Test serialization of instruction BR_IF"
@@ -430,7 +434,11 @@
 
   (test-error stream
     (serialize-instruction '(br_if -10) stream)
-    type-error))
+    type-error)
+
+  (test-error stream
+    (serialize-instruction 'br_if stream)
+    error))
 
 (test instruction-branch-br_table
   "Test serialization of instruction BR_TABLE"
@@ -450,7 +458,11 @@
 
   (test-error stream
     (serialize-instruction '(br_table 1 6 -3 4) stream)
-    type-error))
+    type-error)
+
+  (test-error stream
+    (serialize-instruction 'br_table stream)
+    error))
 
 ;;;; Call Instructions
 
@@ -474,7 +486,11 @@
 
   (test-error stream
     (serialize-instruction '(call -10) stream)
-    type-error))
+    type-error)
+
+  (test-error stream
+    (serialize-instruction 'call stream)
+    error))
 
 (test instruction-call_indirect
   "Test serialization of instruction CALL_INDIRECT"
@@ -496,7 +512,11 @@
 
   (test-error stream
     (serialize-instruction '(call_indirect -10) stream)
-    type-error))
+    type-error)
+
+  (test-error stream
+    (serialize-instruction 'call_indirect stream)
+    error))
 
 ;;;; Structured Blocks
 
