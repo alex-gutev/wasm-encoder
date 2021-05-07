@@ -1501,7 +1501,7 @@
   (destructuring-bind (type) operands
     (serialize-ref-type type stream)))
 
-(defmethod serialize-instruction-operands ((op (eql 'ref.funcidx)) operands stream)
+(defmethod serialize-instruction-operands ((op (eql 'ref.func)) operands stream)
   (destructuring-bind (index) operands
     (serialize-u32 index stream)))
 
