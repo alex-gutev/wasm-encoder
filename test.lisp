@@ -1542,7 +1542,7 @@
     (serialize-instruction '(i64.load32_u (offset -1)) stream)
     type-error))
 
-    ;;;; Store Instructions
+;;;; Store Instructions
 
 (test instruction-i32.store-no-offset-alignment
   "Test serialization of I32.store without offset or alignment"
@@ -1591,7 +1591,7 @@
 
     #(#x37 #x02 #x00)))
 
-(test instruction-i65.store-with-offset
+(test instruction-i64.store-with-offset
   "Test serialization of I64.store with offset"
 
   (test-encoding stream
@@ -1638,7 +1638,7 @@
 
     #(#x38 #x02 #x10)))
 
-(test instruction-F32.store-alignment
+(test instruction-f32.store-alignment
   "Test serialization of F32.store with alignment"
 
   (test-encoding stream
@@ -1771,7 +1771,7 @@
 
     #(#x3B #x01 #x05)))
 
-(test instruction-i32.load16_s-errors
+(test instruction-i32.store16-errors
   "Test errors in serialization of I32.LOAD16_S"
 
   (test-error stream
@@ -1895,23 +1895,22 @@
     (serialize-instruction '(i64.store32 (offset -1)) stream)
     type-error))
 
-    ;;;; Memory Instructions
+;;;; Memory Instructions
 
 (test instruction-memory.size
-  "Test serialization of memory.size"
+  "Test serialization of MEMORY.SIZE"
 
   (test-encoding stream
     (serialize-instruction 'memory.size stream)
     #(#x3F #x00)))
 
 (test instruction-memory.grow
-  "Test serialization of memory.grow"
+  "Test serialization of MEMORY.GROW"
 
   (test-encoding stream
     (serialize-instruction 'memory.grow stream)
     #(#x40 #x00)))
 
-  ;;;; Constant Instructions
 
 (test instruction-i32.const
   "Test serialization of I32.CONST"
