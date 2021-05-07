@@ -1331,9 +1331,9 @@
     (serialize-u32 index stream)))
 
 (defmethod serialize-instruction-operands ((op (eql 'table.init)) operands stream)
-  (destructuring-bind (elem table) operands
-    (check-type elem (integer 0))
+  (destructuring-bind (table elem) operands
     (check-type table (integer 0))
+    (check-type elem (integer 0))
 
     (serialize-u32 elem stream)
     (serialize-u32 table stream)))
