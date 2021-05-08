@@ -36,8 +36,12 @@
 	       #:babel
 	       #:flexi-streams)
 
-  :components ((:file "package")
-               (:file "wasm-encoder"))
+  :components ((:module
+		"src"
+		:serial t
+		:components
+		((:file "package")
+		 (:file "wasm-encoder"))))
 
   :in-order-to ((asdf:test-op (asdf:test-op :wasm-encoder/test))))
 
@@ -47,7 +51,11 @@
   :license "MIT"
   :depends-on (#:wasm-encoder #:fiveam)
 
-  :components ((:file "test"))
+  :components ((:module
+		"test"
+		:serial t
+		:components
+		((:file "test"))))
 
   :perform (asdf:test-op :after (op c)
 			 (uiop:symbol-call '#:wasm-encoder/test '#:test-wasm-encoder)))
