@@ -1,0 +1,628 @@
+= WASM-ENCODER =
+:AUTHOR: Alexander Gutev
+:EMAIL: <alex.gutev@mail.bg>
+:toc: preamble
+:toclevels: 4
+:icons: font
+:idprefix:
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:caution-caption: :fire:
+:important-caption: :exclamation:
+:warning-caption: :warning:
+endif::[]
+
+This is a simple library for serializing a representation of
+WebAssembly modules to the binary wasm format.
+
+== Documentation ==
+
+[[value_types]]
+=== Value Types ===
+
+The value types of various entities, such as global variables,
+function arguments and return values, local and global variables, are
+identified by the following symbols:
+
+.Numeric Types
+`I32`:: 32-bit integer
+`I64`:: 64-bit integer
+`F32`:: 32-bit single precision floating point value
+`F64`:: 64-bit double precision floating point value
+
+.Reference Types
+`FUNCREF`:: Function reference
+`EXTERNREF`:: All reference objects that can be passed to WebAssembly
+
+NOTE: A symbol is considered equivalent to one of the above if its
+symbol name is equivalent, regardless of its package. Thus you don't
+have to import `I32`, etc from the `WASM-ENCODER` package.
+
+=== Instructions ===
+
+A WebAssembly instruction is represented by a symbol of which the
+symbol name is equal to the instruction's mnemonic. Any symbol, in any
+package, with a symbol name that is equal to a WebAssembly instruction
+mnemonic can be used.
+
+Instructions which accept static options are represented by a list in
+which the first element (the `CAR`) is the instruction mnemonic and
+the remaining elements are the options. The interpretation of the
+options depends on the instruction.
+
+==== Branch Instructions ====
+
+The `BR` and `BR_IF` branch instructions each take a single option, an
+unsigned integer interpreted as the index of the block which is the
+branch target.
+
+The `BR_TABLE` takes a variable number of options, where each option
+is an unsigned integer, interpreted as a block index.
+
+.Examples
+--------------------------------------------------
+(BR 0)            ;; Branch to block 0
+(BR_IF 2)         ;; Branch to block 2
+(BR_TABLE 0 1 2)
+--------------------------------------------------
+
+==== Call Instructions ====
+
+The `CALL` instruction takes a single option, an unsigned integer
+interpreted as the index of the function being called.
+
+The `CALL_INDIRECT` instruction takes a single option, an unsigned
+integer interpreted as the index, within the type section, of the
+function's type signature.
+
+.Examples
+--------------------------------------------------
+(CALL 5)             ;; Call function 5
+(CALL_INDIRECT 2)    ;; Indirect call to a function with type signature index 2
+--------------------------------------------------
+
+==== Select Instruction ====
+
+The select instruction takes an optional list of type identifier which
+represent the value types of the operands to be selected. If there is
+more than one type specifier then there is more than one value per
+operand.
+
+.Example
+--------------------------------------------------
+(select f32 f64)
+--------------------------------------------------
+
+In the above example `SELECT` consumes, off the stack, two operands,
+following the condition, each consisting of two values the first being
+an `F32` and the second being an `F64`. The two values of the result
+operand, of type `F32` and `F64`, are pushed back onto the stack.
+
+If `SELECT` is not given the type identifier of it's operand values,
+the operands must be of a numeric type.
+
+NOTE: In the current version of WebAssembly `SELECT` may only specify
+a single value type, for a single value per operand. This library
+supports `SELECT` with multiple operand value types.
+
+==== Local and Global Variable Instructions ====
+
+The instructions for retrieving/setting the value of a local/global
+variable, each take a single options, an unsigned integer interpreted
+as the local/global variable index.
+
+ - `LOCAL.GET`
+ - `LOCAL.SET`
+ - `LOCAL.TEE`
+ - `GLOBAL.GET`
+ - `GLOBAL.SET`
+
+==== Memory Instructions ====
+
+Memory load/store instructions take an optional list specifying the
+expected alignment and offset. These operands take the following form:
+
+--------------------------------------------------
+(I32.STORE (ALIGN a) (OFFSET o)) ;; Alignment = a, Offset = o
+--------------------------------------------------
+
+The alignment option is a list of two elements where the first element
+is a symbol, with name `ALIGN`, and the second element is an unsigned
+integer specifying the alignment as a power of two. If the alignment
+option is omitted a default alignment of `2` is assumed.
+
+The offset option is a list of two elements where the first element is
+a symbol, with name `OFFSET`, and the second element is an unsigned
+integer specifying the offset. If this option is omitted a default
+offset of `0` is assumed.
+
+TIP: As with the instruction mnemonics any symbol, in any package,
+with symbol name `ALIGN` or `OFFSET` can be used to specify the
+alignment and offset options.
+
+The alignment and offset options can be specified in any order and
+either one, or both, can be omitted. If both options are omitted the
+instruction can either take the form of a list containing only the
+instruction mnemonic, or the instruction mnemonic symbol by itself.
+
+.Examples:
+--------------------------------------------------
+(I32.LOAD (OFFSET 8)) ;; Offset = 8
+(I32.STORE (ALIGN 1)) ;; Alignment = 1
+I64.STORE             ;; Default Alignment = 2 and Offset = 0
+--------------------------------------------------
+
+The instructions falling within this group are all the typed `xx.LOAD`
+and `xx.STORE` instructions (where `xx` is the value type), including
+the instructions with a storage size which is smaller than the size of
+the type.
+
+==== Constant Instructions ====
+
+Constant instructions take a single option which is the literal
+constant value.
+
+- `I32.CONST` and `I64.CONST` take either a signed or unsigned 32-bit
+  (64-bit in the case of `I64.CONST`) integer option. However,
+  regardless of whether the operand value is signed or not, the value
+  itself is always encoded as a signed integer in twos-complement.
+
+- `F32.CONST` takes a single precision floating-point
+  (`SINGLE-FLOAT`) value as its option.
+
+- `F64.CONST` takes either a single or double precision floating-point
+   value as its option.
+
+==== Reference Instructions ====
+
+The `REF.NULL` instruction takes a single option which is interpreted
+as the reference type identifier, either `FUNCREF` or `EXTERNREF`. See
+<<value_types>>.
+
+The `REF.FUNC` instruction takes a single option, an unsigned integer
+interpreted as the index of the function, within the function section,
+to which to return a reference.
+
+==== Memory and Table Instructions ====
+
+The `MEMORY.INIT` and `DATA.DROP` instructions both take a single
+option, an unsigned integer which is interpreted as the index of a
+data segment within the data section.
+
+The `TABLE.INIT` and `TABLE.COPY` instructions take two options, both
+unsigned integers which are interpreted as a table index and element
+segment index.
+
+The `ELEM.DROP` instruction takes a single instruction, an unsigned
+integer interpreted as an element segment index.
+
+The `TABLE.GET`, `TABLE.SET`, `TABLE.SIZE`, `TABLE.GROW` and
+`TABLE.FILL` instructions each take a single option, an unsigned
+integer interpreted as a table index.
+
+==== Structured Block Instructions ====
+
+Structured block instructions are represented by a list with the block
+type in the first element being and the instructions, comprising the
+body of the block, in the remaining elements.
+
+The second element of the list may be either an instruction, in which
+case it is the first instruction of the block, or one of the
+following:
+
+`(RESULT type)`:: Indicates the type of value returned (on the stack)
+by the block, where `type` is the value type identifier, see
+<<value_types>>.
+
+`(TYPE index)`:: Indicates the of the values consumed (from the stack)
+and returned by the block, where `index` is the index of a function
+type specifier, with the type section, see <<type_section>>.
+
+If neither a result type nor type signature is specified, then it is
+assumed that the block neither consumes nor returns a value and hence
+does not have a return value type.
+
+The `BLOCK` and `LOOP` block instructions follow this representation
+exactly.
+
+.Example: Simple block (no result type)
+--------------------------------------------------
+(block
+  (local.get 1)
+  (br_if 0)
+  (call 0))
+--------------------------------------------------
+
+.Example: Block with result type
+--------------------------------------------------
+(block (result i32)
+  (local.get 1)
+  (br_if 0)
+
+  (local.get 2)
+  (local.get 3)
+  i32.add)
+--------------------------------------------------
+
+.Example: Block with type signature
+--------------------------------------------------
+(block (type 1) ;; (i32 i32 i32) => i32
+  i32.add
+  i32.mul)
+--------------------------------------------------
+
+.Example: Simple loop
+--------------------------------------------------
+(loop
+  (call 0)
+  (local.get 1)
+  (i32.const 5)
+  i32.lt
+  (br_if 0))
+--------------------------------------------------
+
+The `IF` instruction is represented by a list of the following form:
+
+--------------------------------------------------
+(IF (THEN instructions...)
+    (ELSE instructions...))
+--------------------------------------------------
+
+Where `instructions` are the instructions comprising the body of the
+`THEN` and `ELSE` branches. The `(ELSE ...)` element may be omitted in
+which case the if instruction does not have an else branch.
+
+The `IF` instruction may also have an optional result type or type
+signature specified in the second element by `(RESULT type)` or `(TYPE
+index)`. If this is omitted the `IF` instruction is assumed to have no
+result type.
+
+.Example: If without else branch
+--------------------------------------------------
+(local.get 0)
+(if (then (call 0))
+--------------------------------------------------
+
+.Example: If with else branch
+--------------------------------------------------
+(local.get 0)
+(if (then (call 0))
+    (else (call 1)))
+--------------------------------------------------
+
+.Example: If with result type
+--------------------------------------------------
+(local.get 0)
+(i32.const 0)
+i32.ge
+
+(if (result i32)
+    (then (local.get 0))
+    (else (local.get 0)
+          (i32.const -1)
+          i32.mul))
+--------------------------------------------------
+
+=== Modules ===
+
+A WebAssembly module is represented by the `WASM-MODULE` structure,
+which contains a slot for each section. A `WASM-MODULE` object can be
+serialized to an output stream using the `SERIALIZE-MODULE` function.
+
+==== WASM-MODULE ====
+
+Structure: `WASM-MODULE`
+
+Represents a WebAssembly module with a lot for each section:
+
+Slots:
+
+- `TYPES`
+- `IMPORTS`
+- `FUNCTIONS`
+- `TABLES`
+- `MEMORY`
+- `GLOBALS`
+- `EXPORTS`
+- `START`
+- `ELEMENTS`
+- `DATA`
+
+==== SERIALIZE-MODULE ====
+
+Function: `SERIALIZE-MODULE MODULE STREAM`
+
+Serialize a module to the wasm binary format and write the output to a
+given stream.
+
+`MODULE`:: The `WASM-MODULE` to serialize.
+`STREAM`:: Output stream to which to serialize the module. This must
+be a binary output stream with element type `(UNSIGNED-BYTE 8)`.
+
+[[type_section]]
+=== Type Section ===
+
+The `TYPES` slot, of `WASM-MODULE` ,is a list of `WASM-FUNCTION-TYPE`
+objects which represent the function type signatures of the module's
+functions.
+
+==== WASM-FUNCTION-TYPE ====
+
+Structure: `WASM-FUNCTION-TYPE`
+
+Represents a function type signature.
+
+Slots:
+
+`PARAMS`:: List of the argument types
+`RESULTS`:: List of the return value types
+
+=== Imports Section ===
+
+The `IMPORTS` slot, of `WASM-MODULE`, is a list of `WASM-IMPORT`
+objects which represent the module's imports.
+
+[[wasm_import]]
+==== WASM-IMPORT ====
+
+Structure: `WASM-IMPORT`
+
+Represents an imported entity.
+
+Slots:
+
+`MODULE`:: Module component (first level) of the import name
+
+`NAME`:: Name component (second level) of the import name
+
+`TYPE`:: Keyword identifying type of imported entity:
++
+--
+`:FUNC`:: The imported entity is a function
+`:TABLE`:: The imported entity is a table object
+`:MEMORY`:: The imported entity is a memory object
+`:GLOBAL`:: The imported entity is a global variable
+--
+
+`DESC`:: Description of the imported entity, which depends on `TYPE`:
++
+--
+`:FUNC`:: Index of the function's type signature within the module's
+type section.
+
+`:TABLE`:: A `WASM-TABLE` object specifying the table type and limits.
+
+`:MEMORY`:: A `WASM-LIMIT` object specifying the memory limits.
+
+`:GLOBAL`:: A list of the form `(TYPE MUTABLE-P)` where `TYPE` is the
+value type of the variable and `MUTABLE-P` is a flag, which if true,
+indicates that the variable is mutable.
+--
+
+=== Functions ===
+
+The slot `FUNCTIONS`, of `WASM-MODULE`, is a list of `WASM-FUNCTION`
+objects which represent the module's functions.
+
+==== WASM-FUNCTION ====
+
+Structure: `WASM-FUNCTION`
+
+Represents a function.
+
+Slots:
+
+`TYPE`:: Index of the function's type signature within the type section.
+
+`LOCALS`:: List of the types of the local variables.
+
+`CODE`:: List of instructions comprising the body of the function.
+
+
+=== Memory and Table Sections ===
+
+The `MEMORY` slot is a list of `WASM-LIMIT` objects which specify the
+limits of the module's memory objects.
+
+The slot `TABLES`, of `WASM-MODULE`, is a list of `WASM-TABLE` objects
+which specify the type and limits of the module's table objects.
+
+NOTE: In the current version of WebAssembly, modules may contain a
+maximum of one table and memory object. This library supports
+serializing modules with more than one memory and table object.
+
+==== WASM-LIMIT ====
+
+Structure: `WASM-LIMIT`
+
+Specifies the limits of a memory and table objects.
+
+Slots:
+
+`MIN`:: The lower-bound of the memory / table limit. Must be greater
+than or equal to 0.
+
+`MAX`:: The upper-bound of the limit. If NIL the limit has no
+upper-bound.
+
+
+==== WASM-TABLE ====
+
+Structure: `WASM-TABLE (:INCLUDE WASM-LIMIT)`
+
+Specifies the type and limits of a table object. Includes the slots of
+the structure `WASM-LIMIT`.
+
+Slots:
+
+`TYPE`:: Table element type, either `FUNCREF` (the default) or `EXTERNREF`.
+
+NOTE: In the current version of WebAssembly only tables of type
+`FUNCREF` are supported.
+
+
+=== Global Variable Section ===
+
+The `GLOBALS` slot, of `WASM-MODULE`, is a list of `WASM-GLOBAL`
+objects which represent the module's global variables.
+
+==== WASM-GLOBAL ====
+
+Structure: `WASM-GLOBAL`
+
+Represents a global variable
+
+.Slots
+
+`TYPE`:: Value type of the variable.
+
+`MUTABLE-P`:: Flag, which if true, indicates the variable is
+mutable. Otherwise the variable is immutable.
+
+`INIT`:: Expression which computes the variable's initial value. May
+be `NIL`.
+
+
+=== Exports Section ===
+
+The `EXPORTS` slot, of `WASM-MODULE`, is a list of `WASM-EXPORT`
+objects which represent the entities exported by the module.
+
+==== WASM-EXPORT ====
+
+Structure: `WASM-EXPORT`
+
+Represents an exported entity.
+
+.Slots
+
+`NAME`:: The name (as a string) under which the entity is exported.
+
+`TYPE`:: Keyword describing the type of entity. See the `TYPE` slot of
+<<wasm_import>>.
+
+`INDEX`:: Index of the exported entity within its sections.
+
+
+=== Start Function ===
+
+The `START` slot, of `WASM-MODULE`, is the index of the function, with
+functions list in the `FUNCTIONS` slot, of the function which serves
+as the module's entry point. If `NIL` the module does not have an
+entry point.
+
+=== Element Section ===
+
+The `ELEMENTS` slot, of `WASM-MODULE`, is a list of `WASM-ELEMENT`
+objects which represent the module's element segments.
+
+Each element segment specifies the initial values of a range of
+elements in a table object.
+
+==== WASM-ELEMENT ====
+
+Structure `WASM-ELEMENT`
+
+Represents an element segment.
+
+.Slots
+
+`MODE`:: Keyword specifying the element segment mode.
++
+--
+`:ACTIVE`:: An 'active' segment , which is used to initialize the
+table elements during module instantiation. This is the default.
+
+`:PASSIVE`:: A 'passive' segment, which can be used to initialize the
+table elements at runtime with the `TABLE.INIT` instruction.
+
+`:DECLARATIVE`:: A 'declarative' segment, which is used only to
+forward declare the function references that will be added to the
+table, using the `REF.FUNC` instruction.
+--
+
+`INDEX`:: Index of the table object, 0 by default, which this element
+initializes. This slot is only used when `MODE` is `:ACTIVE`.
++
+--
+NOTE: In the current version of WebAssembly the only valid index is 0.
+--
+
+`OFFSET`:: Expression which computes the starting index of the
+location within the table where the elements in this segment are
+copied to.
+
+`INIT`:: Object specifying the values of the elements in this
+segment. This can be either a `WASM-ELEMENT-INIT-INDEX` or
+`WASM-ELEMENT-INIT-EXPRESSIONS` object.
+
+==== WASM-ELEMENT-INIT-INDEX ====
+
+Structure `WASM-ELEMENT-INIT-INDEX`
+
+Represents a table element segment where the initial element values
+are function indices.
+
+.Slots
+
+`FUNCTIONS`:: List of indices of the functions, within the function
+section (`FUNCTIONs` slot), to which the table elements are set.
+
+==== WASM-ELEMENT-INIT-EXPRESSIONS ====
+
+Structure `WASM-ELEMENT-INIT-EXPRESSIONS`
+
+Represents a table element segment where the initial element values
+are computed by expressions.
+
+.Slots
+
+`TYPE`:: Table element type, either `FUNCREF` (default) or
+`EXTERNREF`.
+
+`EXPRESSIONS`:: List of expressions which compute the initial element
+values. Each expression should leave a function reference on the
+stack, which is obtained with the `REF.FUNC` instruction.
+
+=== Data Section ===
+
+The `DATA` slot, of `WASM-MODULE`, is a list of `WASM-DATA` objects
+which represent the module's data segments.
+
+Each data segment specifies the initial values of a range of bytes
+in a memory object.
+
+==== WASM-DATA ====
+
+Structure `WASM-DATA`
+
+Represents a data segment.
+
+.Slots
+
+`MODE`:: Keyword specifying the element segment mode.
++
+--
+`:ACTIVE`:: An 'active' segment, which is used to initialize the
+memory object during module instantiation. This is the default.
+
+`:PASSIVE`:: A 'passive' segment, which can be used to initialize the
+memory object at runtime with the `MEMORY.INIT` instruction.
+--
+
+`MEMORY`:: Index of the memory object, 0 by default, which this element
+initializes. This slot is only used when `MODE` is `:ACTIVE`.
++
+--
+NOTE: In the current version of WebAssembly the only valid index is 0.
+--
+
+`OFFSET`:: Expression which computes the starting index of the
+location within the memory object where the bytes in this segment are
+copied to.
+
+`BYTES`:: Byte array containing the values to which the bytes in the
+memory object are set.
+
