@@ -25,7 +25,7 @@
   :description "Library for serializing WebAssembly modules to binary .wasm files"
   :author "Alexander Gutev <alex.gutev@mail.bg>"
   :license  "MIT"
-  :version "0.0.1"
+  :version "0.2"
   :serial t
   :depends-on (#:generic-cl
 	       #:agutil
