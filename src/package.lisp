@@ -91,31 +91,31 @@
    #:wasm-global-p
    #:make-wasm-global
 
+   #:wasm-element
+   #:wasm-element-index
+   #:wasm-element-offset
+   #:wasm-element-mode
+   #:wasm-element-init
+   #:wasm-element-p
+   #:make-wasm-element
+
+   #:wasm-element-init-index
+   #:wasm-element-init-index-functions
+   #:wasm-element-init-index-p
+   #:make-wasm-element-init-index
+
+   #:wasm-element-init-expressions
+   #:wasm-element-init-type
+   #:wasm-element-init-expressions-expressions
+   #:wasm-element-init-expressions-p
+   #:make-wasm-element-init-expressions
+
    #:wasm-table
-   #:wasm-table-index
-   #:wasm-table-offset
-   #:wasm-table-mode
-   #:wasm-table-init
+   #:wasm-table-type
+   #:wasm-table-min
+   #:wasm-table-max
    #:wasm-table-p
    #:make-wasm-table
-
-   #:wasm-table-init-index
-   #:wasm-table-init-index-functions
-   #:wasm-table-init-index-p
-   #:make-wasm-table-init-index
-
-   #:wasm-table-init-expressions
-   #:wasm-table-init-type
-   #:wasm-table-init-expressions-expressions
-   #:wasm-table-init-expressions-p
-   #:make-wasm-table-init-expressions
-
-   #:wasm-table-type
-   #:wasm-table-type-type
-   #:wasm-table-type-min
-   #:wasm-table-type-max
-   #:wasm-table-type-p
-   #:make-wasm-table-type
 
    #:wasm-function
    #:wasm-function-type

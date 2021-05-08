@@ -114,7 +114,7 @@
 	   (make-wasm-import :module "env"
 			     :name "table"
 			     :type :table
-			     :desc (make-wasm-table-type :min 2))
+			     :desc (make-wasm-table :min 2))
 
 	   (make-wasm-import :module "env"
 			     :name "memory"
@@ -164,7 +164,7 @@
 
   (test-encoding stream
     (serialize-table-types
-     (list (make-wasm-table-type :min 2 :max 100))
+     (list (make-wasm-table :min 2 :max 100))
      stream)
 
     #(#x04 #x05			  ; Section ID 4, 5 bytes
@@ -244,42 +244,42 @@
       ;; Table 0
       ;; Index initialization
 
-      (make-wasm-table
+      (make-wasm-element
        :index 0
        :offset '((i32.const 2))
        :init
-       (make-wasm-table-init-index
+       (make-wasm-element-init-index
 	:functions '(5 1 3)))
 
-      (make-wasm-table
+      (make-wasm-element
        :index 0
        :offset '((i32.const 100))
        :mode :active
        :init
-       (make-wasm-table-init-index
+       (make-wasm-element-init-index
       	:functions '(9 8)))
 
       ;; Active element
       ;; Table 5
       ;; Index initialization
 
-      (make-wasm-table
+      (make-wasm-element
        :index 5
        :offset '((i32.const 7))
        :init
-       (make-wasm-table-init-index
+       (make-wasm-element-init-index
       	:functions '(#xFC 1 3)))
 
       ;; Active element
       ;; Table 0
       ;; Expression initialization
 
-      (make-wasm-table
+      (make-wasm-element
        :index 0
        :offset '((i32.const #xB6))
        :mode :active
        :init
-       (make-wasm-table-init-expressions
+       (make-wasm-element-init-expressions
       	:type 'funcref
       	:expressions '(((ref.func 0)) ((ref.func 9)))))
 
@@ -288,12 +288,12 @@
       ;; Table 2
       ;; Expression initialization
 
-      (make-wasm-table
+      (make-wasm-element
        :index 2
        :offset '((i32.const #xB6))
        :mode :active
        :init
-       (make-wasm-table-init-expressions
+       (make-wasm-element-init-expressions
       	:type 'funcref
       	:expressions '(((ref.func 0)) ((ref.func 6))))))
 
@@ -344,20 +344,20 @@
       ;; Passive Element
       ;; Index initialization
 
-      (make-wasm-table
+      (make-wasm-element
        :mode :passive
        :init
-       (make-wasm-table-init-index
+       (make-wasm-element-init-index
       	:functions '(1 2 3)))
 
       ;; Passive element
       ;; Expression initialization
 
-      (make-wasm-table
+      (make-wasm-element
        :offset '((i32.const #xB6))
        :mode :passive
        :init
-       (make-wasm-table-init-expressions
+       (make-wasm-element-init-expressions
       	:type 'externref
       	:expressions '(((ref.func 0)) ((ref.func 9))))))
      stream)
@@ -385,20 +385,20 @@
       ;; Declarative element
       ;; Index initialization
 
-      (make-wasm-table
+      (make-wasm-element
        :mode :declarative
        :init
-       (make-wasm-table-init-index
+       (make-wasm-element-init-index
       	:functions '(1 2 3)))
 
       ;; Declarative element
       ;; Expression initialization
 
-      (make-wasm-table
+      (make-wasm-element
        :offset '((i32.const #xB6))
        :mode :declarative
        :init
-       (make-wasm-table-init-expressions
+       (make-wasm-element-init-expressions
       	:type 'funcref
       	:expressions '(((ref.func 0)) ((ref.func 7))))))
 

@@ -295,21 +295,21 @@
 
   (test-encoding stream
     (serialize-table
-     (make-wasm-table-type :min 10)
+     (make-wasm-table :min 10)
      stream)
 
     #(#x70 #x00 10))
 
   (test-encoding stream
     (serialize-table
-     (make-wasm-table-type :min 10 :max 100)
+     (make-wasm-table :min 10 :max 100)
      stream)
 
     #(#x70 #x01 10 100))
 
   (test-encoding stream
     (serialize-table
-     (make-wasm-table-type :type 'externref :min 10 :max 100)
+     (make-wasm-table :type 'externref :min 10 :max 100)
      stream)
 
     #(#x6F #x01 10 100)))
@@ -319,7 +319,7 @@
 
   (test-error stream
     (serialize-table
-     (make-wasm-table-type :type 'i32 :min 10)
+     (make-wasm-table :type 'i32 :min 10)
      stream)
 
     error))

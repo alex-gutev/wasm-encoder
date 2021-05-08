@@ -139,8 +139,8 @@
   mutable-p
   init)
 
-(defstruct wasm-table
-  "Represents the initialization of a range of table elements.
+(defstruct wasm-element
+  "Represents an element segment.
 
    INDEX is the index of the table to initialize (0 by default which
    is the only valid index).
@@ -156,13 +156,13 @@
   offset
   init)
 
-(defstruct wasm-table-init-index
+(defstruct wasm-element-init-index
   "Represents a table element segment initialization using function
    indices."
 
   functions)
 
-(defstruct wasm-table-init-expressions
+(defstruct wasm-element-init-expressions
   "Represents a table element segment initialization using
    expressions"
 
@@ -200,8 +200,8 @@
   (memory 0)
   (mode :active))
 
-(defstruct (wasm-table-type (:include wasm-limit))
-  "Represents a WebAssembly table type.
+(defstruct (wasm-table (:include wasm-limit))
+  "Represents a table type.
 
    TYPE is the type of element stored in the table."
 
@@ -520,7 +520,7 @@
   "Serialize a single table element initialization entry, represented
    by a WASM-TABLE object."
 
-  (with-struct-slots wasm-table- (index mode offset init) table
+  (with-struct-slots wasm-element- (index mode offset init) table
     ;; Serialize Type
     (write-byte (table-element-type-code table) stream)
 
@@ -544,20 +544,20 @@
    STREAM is the output stream"
 
   (cond
-    ((wasm-table-init-index-p init)
+    ((wasm-element-init-index-p init)
 
      (when (or (/= mode :active) (plusp index))
        (write-byte #x00 stream))
 
-     (serialize-vector #'serialize-u32 (wasm-table-init-index-functions init) stream))
+     (serialize-vector #'serialize-u32 (wasm-element-init-index-functions init) stream))
 
     (t
      (when (or (/= mode :active)
 	       (plusp index)
-	       (/= 'funcref (intern-symbol (wasm-table-init-expressions-type init))))
+	       (/= 'funcref (intern-symbol (wasm-element-init-expressions-type init))))
 
-       (serialize-ref-type (wasm-table-init-expressions-type init) stream))
-     (serialize-vector #'serialize-expression (wasm-table-init-expressions-expressions init) stream))))
+       (serialize-ref-type (wasm-element-init-expressions-type init) stream))
+     (serialize-vector #'serialize-expression (wasm-element-init-expressions-expressions init) stream))))
 
 (defun table-element-type-code (element)
   "Return the type code for a table element.
@@ -566,14 +566,14 @@
 
    Returns the type code as a byte."
 
-  (with-struct-slots wasm-table- (index mode offset init)
+  (with-struct-slots wasm-element- (index mode offset init)
       element
 
     (logior
      (if (member mode '(:passive :declarative)) 1 0)
      (if (or (= mode :declarative) (plusp index))
 	 2 0)
-     (if (wasm-table-init-expressions-p init) 4 0))))
+     (if (wasm-element-init-expressions-p init) 4 0))))
 
 
 ;;;; Function Sections
@@ -878,7 +878,7 @@
   "Serialize a table object entry with limit, represented by a
    WASM-LIMIT object, given by LIMIT."
 
-  (serialize-ref-type (wasm-table-type-type table) stream)
+  (serialize-ref-type (wasm-table-type table) stream)
   (serialize-limit table stream))
 
 (defun serialize-limit (limit stream)
