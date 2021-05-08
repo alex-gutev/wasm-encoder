@@ -55,7 +55,10 @@
 		"test"
 		:serial t
 		:components
-		((:file "test"))))
+		((:file "test")
+		 (:file "values")
+		 (:file "instructions")
+		 (:file "modules"))))
 
   :perform (asdf:test-op :after (op c)
 			 (uiop:symbol-call '#:wasm-encoder/test '#:test-wasm-encoder)))
