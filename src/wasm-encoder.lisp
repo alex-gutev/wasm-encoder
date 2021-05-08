@@ -26,43 +26,50 @@
 ;;; Types
 
 (defstruct wasm-module
-  "Represents a WebAssembly module that will be serialized to a .wasm
-   file.
+  "Represents a WebAssembly module that can be serialized to the binary wasm format.
 
    Each slot contains a list of the entities comprising a particular
    section of the module. The entities are serialized in the order
    given in the list.
 
-   TYPES is the list of the module's function type signatures as
-   WASM-FUNCTION-TYPE objects.
+   TYPES is a list of `WASM-FUNCTION-TYPE' objects representing the
+   function type signatures of the module's functions.
 
-   IMPORTS is the list of the module's imports as WASM-IMPORT objects.
+   IMPORTS is a list of `WASM-IMPORT' objects representing the
+   module's imports.
 
-   FUNCTIONS is the list of the module's functions as WASM-FUNCTION
+   FUNCTIONS is a list of `WASM-FUNCTION' objects representing the
+   module's functions, including both the signatures and code.
+
+   TABLES is a list of `WASM-TABLE' objects specifying the limits, and
+   types, of the module's tables. In the current version of
+   WebAssembly, a module may have at most one table of type FUNCREF,
+   however this library supports multiple tables of both type FUNCREF
+   and EXTERNREF.
+
+   MEMORY is a list of `WASM-LIMIT' objects specifying the limits of
+   the module's memory objects. Currently a module may have at most
+   one memory object, however this library supports multiple memory
    objects.
 
-   TABLES is a list of WASM-LIMIT objects specifying the limits of the
-   module's tables. Currently a module may have at most one table of
-   type FUNCREF.
+   GLOBALS is a list of `WASM-GLOBAL' objects representing the
+   module's global variables.
 
-   MEMORY is a list of WASM-LIMIT objects specifying the limits of the
-   module's memory objects. Currently a module may have at most one
-   memory object.
-
-   GLOBALS is the list of the module's global variables as WASM-GLOBAL
-   objects.
-
-   EXPORTS is the list of the module's exports as WASM-EXPORT
-   objects.
+   EXPORTS is a list `WASM-EXPORT' objects representing the module's
+   exports.
 
    START is the index of the function serving as the module's entry
-   point. NIL if the module does not have an entry point.
+   point. If NIL the module does not have an entry point.
 
-   ELEMENTS is a list of WASM-TABLE objects which specify the
-   initial contents for given ranges within a table.
+   ELEMENTS is a list of `WASM-ELEMET' objects representing the
+   module's element segments, for initializing the module's tables.
 
-   DATA is a list of WASM-DATA objects which specify the initial
-   contents for given ranges of memory."
+   DATA is a list of `WASM-DATA' objects representing the module's
+   data segments for initializing the module's memory.
+
+   DATA-COUNT is a flag, which if true, a data count section is
+   emitted, prior to the code section, storing the number of data
+   segments."
 
   types
   imports
@@ -76,31 +83,41 @@
   data
   (data-count t))
 
-
 (defstruct wasm-function-type
-  "Represents a function type signature, with the argument types
-   PARAMS and result types RESULTS. Currently RESULTS may contains at
-   most one element."
+  "Represents a function type signature.
+
+   PARAMS is a list of the argument types.
+
+   RESULTS is a list of the return value types."
 
   params
   results)
 
 (defstruct wasm-import
-  "Represents an entry in a WebAssembly module's imports.
+  "Represents an imported entity.
 
    The two-level import name is given by MODULE and NAME.
 
-   TYPE specifies the kind of entity that is imported: FUNC -
-   function, TABLE - table, MEMORY - memory and GLOBAL - global
-   variable.
+   TYPE is a keyword specifying the kind of entity that is imported:
 
-   DESC is a description of the imported entity. In the case of a
-   function, this is the index of the functions type signature. In the
-   case of a table or memory object, this is the a WASM-LIMIT object
-   containing the limits of the table/memory. In the case of a global
-   variable this a list of the form (TYPE MUTABLE-P) where TYPE is the
-   value type of the global variable and MUTABLE-P is a Boolean
-   indicating whether the variable is mutable."
+     :FUNC   - function
+     :TABLE  - table object
+     :MEMORY - memory object
+     :GLOBAL - global variable
+
+   DESC is a description of the imported entity, which depends on TYPE:
+
+     :FUNC - Index of the function's type signature within the
+             module's type section.
+
+     :TABLE - A `WASM-TABLE' object specifying the table type and
+              limits.
+
+     :MEMORY - A `WASM-LIMIT' object specifying the memory limits.
+
+     :GLOBAL - A list of the form (TYPE MUTABLE-P) where TYPE is the
+               value type of the variable and MUTABLE-P is a flag for
+               whether the variable is mutable."
 
   module
   name
@@ -108,16 +125,19 @@
   desc)
 
 (defstruct wasm-export
-  "Represents an entry in a WebAssembly module's exports.
+  "Represents an exported entity.
 
    NAME is the name at which the entity is exported.
 
-   TYPE specifies the kind of entity that is imported: FUNC -
-   function, TABLE - table, MEMORY - memory and GLOBAL - global
-   variable.
+   TYPE is a keyword specifying the kind of entity that is exported:
 
-   INDEX is the index of the exported entity within its containing
-   module section."
+     :FUNC   - function
+     :TABLE  - table object
+     :MEMORY - memory object
+     :GLOBAL - global variable
+
+   INDEX is the index of the exported entity within the module
+   section in which it is contained."
 
   name
   type
@@ -125,15 +145,26 @@
 
 
 (defstruct wasm-limit
-  "Represents a limit of a table or memory object."
+  "Represents a limit of memory or table object.
+
+   MIN is the lower bound, which must be greater than or equal to 0.
+
+   MAX is the upper bound. If NIL the limit has no upper bound."
 
   min
   max)
 
 (defstruct wasm-global
-  "Represents a global variable with value type TYPE. MUTABLE-P is a
-   Boolean indicating whether the variable is mutable and INIT is the
-   list of instructions which compute the variable's initial value."
+  "Represents a global variable.
+
+   TYPE is the value type of the variable.
+
+   MUTABLE-P is a flag, which if true indicates the variable is
+   mutable.
+
+   INIT is an optional expression (a list of instructions) which
+   compute the variables initial value. If NIL the variable has no
+   initial value."
 
   type
   mutable-p
@@ -142,37 +173,59 @@
 (defstruct wasm-element
   "Represents an element segment.
 
-   INDEX is the index of the table to initialize (0 by default which
-   is the only valid index).
+   Element segments specify the initial values of table elements.
 
-   OFFSET is a list of instructions which compute the starting index
-   of the range to initialize.
+   MODE is a keyword specifying the element segment mode:
 
-   FUNCTIONS is the list of function indices, to initialize the
-   table elements to."
+    :ACTIVE      - An active element initialized on instantiation (the default)
+    :PASSIVE     - A passive element which can be used with TABLE.INIT
+    :DECLARATIVE - A forward declaration of table contents.
 
-  (index 0)
+   INDEX is the index of the table to initialize. This slot is only
+   used when MODE is :ACTIVE. By default this is 0, which is the only
+   valid index in the current version of WebAssembly.
+
+   OFFSET is an expression (list of instructions) which compute the
+   starting index of the range to initialize. This field is only used
+   when MODE is :ACTIVE.
+
+   INIT is an object specifying the initial values of the table
+   elements, which can be of the following can be either a
+   `WASM-ELEMENT-INIT-INDEX' or `WASM-ELEMENT-INIT-EXPRESSIONS'
+   object."
+
   (mode :active)
+  (index 0)
   offset
   init)
 
 (defstruct wasm-element-init-index
-  "Represents a table element segment initialization using function
-   indices."
+  "Represents a table element segment initialization with function indices.
+
+   FUNCTIONS is a list of function indices to which the table elements
+   are initialized, starting from the index OFFSET (of the WASM-ELEMENT object)."
 
   functions)
 
 (defstruct wasm-element-init-expressions
-  "Represents a table element segment initialization using
-   expressions"
+  "Represents a table element segment initialization with expressions.
 
-  type
+   TYPE is the table element type, either FUNCREF (default) or
+   EXTERNREF. In the current version of WebAssembly only FUNCREF is
+   supported.
+
+   EXPRESSIONS is a list of expressions, where each expression is a
+   list of instructions, which compute the initial values of the table
+   elements, starting from the index OFFSET (of the WASM-ELEMENT object)."
+
+  (type 'funcref)
   expressions)
 
 (defstruct wasm-function
   "Represents a WebAssembly function.
 
-   TYPE is the index of the functions type signature.
+   TYPE is the index of the functions type signature, within the type
+   section.
 
    LOCALS is the list of the value types of the functions local
    variables.
@@ -184,26 +237,37 @@
   code)
 
 (defstruct wasm-data
-  "Represents an initialization of a range of memory.
+  "Represents a data segment.
 
-   MEMORY is the index of the memory object to initialize (0 by
-   default which is the only valid index).
+   Data segments specify the initial values of memory objects.
 
-   OFFSET is a list of instructions which compute the starting index
-   of the range to initialize.
+   MODE is a keyword specifying the data segment mode:
+
+    :ACTIVE      - An active element initialized on module loading (the default)
+    :PASSIVE     - A passive element which can be used with MEMORY.INIT
+
+   MEMORY is the index of the memory object to initialize. This field
+   is only used when MODE is :ACTIVE. By default this is 0, which is
+   the only valid index in the current version of WebAssembly.
+
+   OFFSET is an expression (list of instructions) which compute the
+   starting index of the range to initialize. This field is only used
+   when MODE is :ACTIVE.
 
    BYTES is the byte array containing the values to which the bytes,
-   starting at OFFSET, are initialized."
+   starting at OFFSET (in the case of an active data segment), are
+   initialized."
 
+  (mode :active)
   offset
   bytes
-  (memory 0)
-  (mode :active))
+  (memory 0))
 
 (defstruct (wasm-table (:include wasm-limit))
-  "Represents a table type.
+  "Represents a table object type.
 
-   TYPE is the type of element stored in the table."
+   TYPE is the type of element stored in the table, either FUNCREF or
+   EXTERNREF."
 
   (type 'funcref))
 
@@ -225,8 +289,12 @@
 ;;; Module Serialization
 
 (defun serialize-module (module stream)
-  "Serialize a WebAssembly module to the output stream STREAM, which
-   must be a binary stream with element type (unsigned-byte 8)."
+  "Serialize a WebAssembly module to an output stream.
+
+   MODULE is a `WASM-MODULE' object.
+
+   STREAM is the output stream, which must be a binary stream with
+   element type (unsigned-byte 8)."
 
   (write-sequence #(#x00 #x61 #x73 #x6D  ; Magic Number
                     #x01 #x00 #x00 #x00) ; Version Field
@@ -307,13 +375,13 @@
   "Module entry point section identifier.")
 
 (defconstant +element-section-id+ 9
-  "Table initialization section identifier.")
+  "Element section identifier.")
 
 (defconstant +code-section-id+ 10
   "Function body section identifier.")
 
 (defconstant +data-section-id+ 11
-  "Memory initialization section identifier.")
+  "Data section identifier.")
 
 (defconstant +data-count-section-id+ 12
   "Data count section identifier.")
@@ -333,8 +401,7 @@
   (serialize-with-byte-size fn stream))
 
 (defun serialize-with-byte-size (fn stream)
-  "Serialize a sequence of BYTES to STREAM, preceded by the number of
-   bytes.
+  "Serialize a sequence of bytes to STREAM, preceded by the number of bytes.
 
    FN is called with a single argument -- the stream to which the
    contents of the section should be written. The number of bytes is
@@ -381,6 +448,8 @@
   "Serialize a single import entry IMPORT, represented by a
    WASM-IMPORT object."
 
+  (check-type import wasm-import)
+
   (with-struct-slots wasm-import- (module name type desc)
       import
 
@@ -409,7 +478,7 @@
 
 (defun serialize-table-types (tables stream)
   "Serialize the table section, consisting of a table for each table
-   limit, represented as a WASM-LIMIT, given in TABLES."
+   limit, represented as a WASM-TABLE, given in TABLES."
 
   (serialize-section
    +table-section-id+
@@ -439,6 +508,8 @@
    variables, represented by WASM-GLOBAL objects, in GLOBALS."
 
   (flet ((serialize-global (global stream)
+	   (check-type global wasm-global)
+
            (with-struct-slots wasm-global- (type mutable-p init)
                global
 
@@ -471,6 +542,8 @@
 (defun serialize-export (export stream)
   "Serialize a single export entry, represented as a WASM-EXPORT
    object."
+
+  (check-type export wasm-export)
 
   (with-struct-slots wasm-export- (name type index) export
     (serialize-string name stream)
@@ -505,7 +578,7 @@
 
 (defun serialize-table-elements (elements stream)
   "Serialize the table element section, consisting of the table
-   element initializations, represented by WASM-TABLE objects, in
+   element initializations, represented by WASM-ELEMNT objects, in
    ELEMENTS."
 
   (serialize-section
@@ -518,9 +591,15 @@
 
 (defun serialize-table-element (table stream)
   "Serialize a single table element initialization entry, represented
-   by a WASM-TABLE object."
+   by a WASM-ELEMENT object."
+
+  (check-type table wasm-element)
 
   (with-struct-slots wasm-element- (index mode offset init) table
+    (check-type index (integer 0))
+    (check-type mode (member :active :passive :declarative))
+    (check-type init (or wasm-element-init-index wasm-element-init-expressions))
+
     ;; Serialize Type
     (write-byte (table-element-type-code table) stream)
 
@@ -628,6 +707,8 @@
                 do (advance it)
                 finally (return (cons type count)))))
 
+    (check-type function wasm-function)
+
     (with-struct-slots wasm-function- (locals code)
         function
 
@@ -672,8 +753,13 @@
 (defun serialize-data (data stream)
   "Serialize a data segment."
 
+  (check-type data wasm-data)
+
   (with-struct-slots wasm-data- (offset bytes memory mode)
       data
+
+    (check-type memory (integer 0))
+    (check-type mode (member :active :passive))
 
     (write-byte (data-segment-type-code data) stream)
 
@@ -839,6 +925,8 @@
   "Serialize a function type signature, represented by a
    WASM-FUNCTION-TYPE object."
 
+  (check-type type wasm-function-type)
+
   (with-struct-slots wasm-function-type- (params results)
       type
 
@@ -878,11 +966,15 @@
   "Serialize a table object entry with limit, represented by a
    WASM-LIMIT object, given by LIMIT."
 
+  (check-type table wasm-table)
+
   (serialize-ref-type (wasm-table-type table) stream)
   (serialize-limit table stream))
 
 (defun serialize-limit (limit stream)
   "Serialize a memory/table limit represented by a WASM-LIMIT object."
+
+  (check-type limit wasm-limit)
 
   (with-struct-slots wasm-limit- (min max) limit
     (cond
@@ -1160,7 +1252,8 @@
 	    (opcode (or
 		     (when (listp instruction) (get (list op) +op-codes+))
 		     (get op +op-codes+))))
-       (assert opcode)
+
+       (assert opcode (opcode) "Unknown instruction ~a" op)
 
        (write-sequence (ensure-list opcode) stream)
        (serialize-instruction-operands op (intern-symbols operands) stream)))))
@@ -1173,6 +1266,7 @@
   "Default Method, does nothing."
 
   (declare (ignore operands stream))
+  (assert (null operands) (operands) "Instruction ~a does not take immediate operands" op)
   nil)
 
 ;;;; Blocks
